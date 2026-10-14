@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SolarUY.Client/SolarUY.Client.csproj" />
+  <Project Path="SolarUY/SolarUY.csproj" />
+</Solution>
