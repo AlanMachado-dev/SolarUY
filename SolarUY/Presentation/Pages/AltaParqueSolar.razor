@@ -1,0 +1,89 @@
+@page "/parques-solares/nuevo"
+@namespace SolarUY.Presentation.Pages
+@attribute [Authorize(Roles = "Administrador")]
+@inject IParqueSolarService ParqueService
+@inject ILogger<AltaParqueSolar> Logger
+
+<PageTitle>Registrar parque solar - SolarUY</PageTitle>
+<h1>Registrar parque solar</h1>
+
+@if (_resultado?.EsExitoso == true)
+{
+    var parque = _resultado.Parque!;
+    <section aria-labelledby="confirmacion" role="status">
+        <h2 id="confirmacion">Parque solar registrado</h2>
+        <dl>
+            <dt>ID</dt><dd>@parque.ID</dd>
+            <dt>Nombre</dt><dd>@parque.Nombre</dd>
+            <dt>Ubicación</dt><dd>@parque.Ubicacion</dd>
+            <dt>Capacidad total estimada</dt><dd>@parque.CapacidadTotalEstimadaMw.ToString("0.##") MW</dd>
+        </dl>
+        <a class="btn btn-primary" href="/parques-solares/nuevo" data-enhance-nav="false">Registrar otro parque</a>
+    </section>
+}
+else
+{
+    <p>La capacidad inicial es 0 MW. Se calculará al incorporar nodos y paneles.</p>
+    <p>Los campos marcados con * son obligatorios.</p>
+    @if (_errorGeneral is not null)
+    {
+        <div class="alert alert-danger" role="alert">@_errorGeneral</div>
+    }
+    <EditForm EditContext="_editContext" FormName="alta-parque-solar" OnSubmit="RegistrarAsync">
+        <ValidationSummary />
+        <div class="mb-3">
+            <label class="form-label" for="nombre">Nombre *</label>
+            <InputText id="nombre" class="form-control" @bind-Value="Modelo!.Nombre"
+                       required aria-required="true" aria-describedby="nombre-error" />
+            <div id="nombre-error"><ValidationMessage For="() => Modelo!.Nombre" /></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="ubicacion">Ubicación (localidad / dirección) *</label>
+            <InputText id="ubicacion" class="form-control" @bind-Value="Modelo!.Ubicacion"
+                       required aria-required="true" aria-describedby="ubicacion-error" />
+            <div id="ubicacion-error"><ValidationMessage For="() => Modelo!.Ubicacion" /></div>
+        </div>
+        <button type="submit" class="btn btn-primary">Registrar parque</button>
+    </EditForm>
+    @if (_resultado?.Errores.Any(error => error.Codigo == CodigoErrorAltaParqueSolar.AutenticacionRequerida) == true)
+    {
+        <a href="/cuenta/iniciar-sesion">Iniciar sesión</a>
+    }
+}
+
+@code {
+    [SupplyParameterFromForm(FormName = "alta-parque-solar")]
+    private CrearParqueSolarDto? Modelo { get; set; }
+
+    private EditContext _editContext = null!;
+    private ValidationMessageStore _mensajes = null!;
+    private ResultadoAltaParqueSolarDto? _resultado;
+    private string? _errorGeneral;
+
+    protected override void OnInitialized()
+    {
+        Modelo ??= new CrearParqueSolarDto();
+        _editContext = new EditContext(Modelo);
+        _mensajes = new ValidationMessageStore(_editContext);
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _mensajes.Clear();
+        _errorGeneral = null;
+        try
+        {
+            _resultado = await ParqueService.CrearAsync(Modelo!);
+            foreach (var error in _resultado.Errores)
+            {
+                _mensajes.Add(new FieldIdentifier(Modelo!, error.Campo ?? string.Empty), error.Mensaje);
+            }
+            _editContext.NotifyValidationStateChanged();
+        }
+        catch (Exception error)
+        {
+            Logger.LogError(error, "Error al registrar un parque solar.");
+            _errorGeneral = "No se pudo registrar el parque solar. Intentá nuevamente.";
+        }
+    }
+}

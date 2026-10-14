@@ -58,3 +58,12 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Bases locales de desarrollo
+*.db
+*.db-shm
+*.db-wal
+
+# Caché del arnés Python
+__pycache__/
+*.pyc

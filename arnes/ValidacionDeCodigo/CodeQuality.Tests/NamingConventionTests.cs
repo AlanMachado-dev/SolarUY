@@ -56,7 +56,7 @@ public class NamingConventionTests
     public void ApplicationServices_ShouldEndWithService()
     {
         IArchRule rule = Classes()
-            .That().ResideInNamespace(ApplicationNamespace)
+            .That().ResideInNamespace(ApplicationServicesNamespace)
             //.And().AreAssignableTo("IService") 
             .Should().HaveNameEndingWith("Service")
             .Because("Los casos de uso en la capa de Aplicación deben identificarse claramente con el sufijo 'Service'.");

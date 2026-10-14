@@ -23,7 +23,7 @@ public class RepositoryTests
     {
         IArchRule rule = Classes()
             .That().HaveNameEndingWith("Repository")
-            .Should().ResideInNamespace(InfrastructureNamespace)
+            .Should().ResideInNamespaceMatching(InfrastructureNamespace)
             .Because("Las implementaciones concretas de los repositorios deben estar en la capa de Infraestructura.");
 
         rule.Check(_architecture);

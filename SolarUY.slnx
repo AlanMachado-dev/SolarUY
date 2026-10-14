@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="SolarUY.Client/SolarUY.Client.csproj" />
   <Project Path="SolarUY/SolarUY.csproj" />
+  <Project Path="arnes/ValidacionDeCodigo/CodeQuality.Tests/CodeQuality.Tests.csproj" />
+  <Project Path="tests/SolarUY.Domain.Tests/SolarUY.Domain.Tests.csproj" />
 </Solution>
