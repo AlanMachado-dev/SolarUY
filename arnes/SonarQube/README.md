@@ -57,6 +57,9 @@ Ejecutar scripts (`analizar.sh` para Linux/Mac y `analizar.ps1` para Windows).
 
    **En Windows (PowerShell):**
    ```powershell
+   # Si PowerShell bloquea los scripts, habilitarlos solo en esta ventana
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
    # Opción A: Pasando la ruta de tu proyecto
    .\analizar.ps1 "C:\ruta\hacia\tu\proyecto"
    
@@ -64,7 +67,7 @@ Ejecutar scripts (`analizar.sh` para Linux/Mac y `analizar.ps1` para Windows).
    C:\ruta\hacia\sonar\analizar.ps1
    ```
 
-5. El script verificará si tienes la imagen del escáner; si no la tienes, **la construirá automáticamente la primera vez**.
+5. El script construirá o actualizará automáticamente la imagen del escáner. Docker reutiliza las capas sin cambios; la primera ejecución puede tardar unos minutos.
 6. Luego, verás cómo arranca mágicamente el contenedor, compila tu código, y envía los resultados.
 7. Regresa a **http://localhost:9000** en tu navegador y actualiza la página. ¡Deberías ver tu proyecto analizado!
 

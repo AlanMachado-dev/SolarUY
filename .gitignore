@@ -9,6 +9,8 @@
 
 # otras cosas
 .vs
+.sonarqube/
+.scannerwork/
 
 # Build results
 [Dd]ebug/

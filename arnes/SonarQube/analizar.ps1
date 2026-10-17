@@ -1,12 +1,14 @@
+param([string]$ProjectPath = $PWD.Path)
+
 # =========================================================================
 # CONFIGURACIÓN DEL PROYECTO
 # =========================================================================
 
 # 1. Pega aquí el Token que generaste en SonarQube
-$SONAR_TOKEN = "pega_tu_token_aqui"
+$SONAR_TOKEN = "squ_92383340b15e91c9fec4fa22a169571b3c9c5efe"
 
 # 2. Inventa un nombre para tu proyecto (sin espacios) o usa el nombre de tu taller
-$PROJECT_KEY = "MiProyecto"
+$PROJECT_KEY = "SolarUY"
 
 # =========================================================================
 # NO MODIFICAR ABAJO DE ESTA LÍNEA
@@ -15,9 +17,6 @@ $PROJECT_KEY = "MiProyecto"
 # =========================================================================
 # RUTAS Y VALIDACIONES
 # =========================================================================
-
-# 3. Leer la ruta del proyecto desde el primer parámetro (o usar la carpeta actual por defecto)
-param([string]$ProjectPath = $PWD.Path)
 
 # Convertir a ruta absoluta y resolverla
 try {
@@ -48,12 +47,12 @@ try { Invoke-RestMethod -Uri "$BaseUrl/create_condition?gateName=$QGName&metric=
 try { Invoke-RestMethod -Uri "$BaseUrl/set_as_default?name=$QGName" -Method Post -Headers $Headers -ErrorAction SilentlyContinue | Out-Null } catch {}
 
 $IMAGE_NAME = "mi-taller-scanner"
-$imageExists = docker images -q $IMAGE_NAME
-if ([string]::IsNullOrWhiteSpace($imageExists)) {
-    Write-Host "La imagen de Docker '$IMAGE_NAME' no existe en tu sistema." -ForegroundColor Yellow
-    Write-Host "Construyéndola automáticamente por primera vez (esto puede tardar unos minutos)..." -ForegroundColor Yellow
-    $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-    docker build -t $IMAGE_NAME "$ScriptDir/scanner"
+$ScriptDir = $PSScriptRoot
+Write-Host "Actualizando la imagen del escáner (Docker reutiliza las capas sin cambios)..." -ForegroundColor Cyan
+docker build -t $IMAGE_NAME "$ScriptDir/scanner"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: No se pudo construir la imagen del escáner." -ForegroundColor Red
+    exit $LASTEXITCODE
 }
 
 Write-Host "Iniciando contenedor analizador para $PROJECT_KEY..." -ForegroundColor Cyan
@@ -64,4 +63,5 @@ docker run --rm --network host `
   -e SONAR_HOST_URL="http://localhost:9000" `
   -e SONAR_TOKEN=$SONAR_TOKEN `
   -e PROJECT_KEY=$PROJECT_KEY `
-  mi-taller-scanner
+  $IMAGE_NAME
+exit $LASTEXITCODE

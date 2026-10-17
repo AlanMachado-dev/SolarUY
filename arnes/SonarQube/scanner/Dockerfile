@@ -14,7 +14,7 @@ ENV PATH="$PATH:/root/.dotnet/tools"
 
 # Copiar el script de punto de entrada
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Directorio de trabajo predeterminado donde montaremos el volumen del código
 WORKDIR /app

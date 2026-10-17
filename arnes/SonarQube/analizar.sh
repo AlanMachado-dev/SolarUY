@@ -47,11 +47,11 @@ curl -s -u "${SONAR_TOKEN}:" -X POST "http://localhost:9000/api/qualitygates/cre
 curl -s -u "${SONAR_TOKEN}:" -X POST "http://localhost:9000/api/qualitygates/set_as_default?name=${QG_NAME}" > /dev/null
 
 IMAGE_NAME="mi-taller-scanner"
-if [[ "$(docker images -q $IMAGE_NAME 2> /dev/null)" == "" ]]; then
-    echo "La imagen de Docker '$IMAGE_NAME' no existe en tu sistema."
-    echo "Construyéndola automáticamente por primera vez (esto puede tardar unos minutos)..."
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-    docker build -t $IMAGE_NAME "$SCRIPT_DIR/scanner"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+echo "Actualizando la imagen del escáner (Docker reutiliza las capas sin cambios)..."
+if ! docker build -t "$IMAGE_NAME" "$SCRIPT_DIR/scanner"; then
+    echo "ERROR: No se pudo construir la imagen del escáner."
+    exit 1
 fi
 
 echo "Iniciando contenedor analizador para $PROJECT_KEY..."
@@ -62,4 +62,4 @@ docker run --rm --network host \
   -e SONAR_HOST_URL="http://localhost:9000" \
   -e SONAR_TOKEN="$SONAR_TOKEN" \
   -e PROJECT_KEY="$PROJECT_KEY" \
-  mi-taller-scanner
+  "$IMAGE_NAME"
