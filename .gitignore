@@ -66,6 +66,9 @@ nunit-*.xml
 *.db-shm
 *.db-wal
 
+# Conexión privada del servidor
+/SolarUY/appsettings.Local.json
+
 # Caché del arnés Python
 __pycache__/
 *.pyc

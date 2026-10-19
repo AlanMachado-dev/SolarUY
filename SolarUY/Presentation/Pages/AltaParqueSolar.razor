@@ -34,7 +34,8 @@ else
         <div class="mb-3">
             <label class="form-label" for="nombre">Nombre *</label>
             <InputText id="nombre" class="form-control" @bind-Value="Modelo!.Nombre"
-                       required aria-required="true" aria-describedby="nombre-error" />
+                       required aria-required="true" aria-describedby="nombre-ayuda nombre-error" />
+            <div id="nombre-ayuda" class="form-text">Máximo 100 caracteres.</div>
             <div id="nombre-error"><ValidationMessage For="() => Modelo!.Nombre" /></div>
         </div>
         <div class="mb-3">
@@ -82,7 +83,9 @@ else
         }
         catch (Exception error)
         {
-            Logger.LogError(error, "Error al registrar un parque solar.");
+            // El mensaje de un error del conector puede contener SQL o datos sensibles.
+            Logger.LogError("Error al registrar un parque solar. Tipo de fallo: {TipoError}.",
+                error.GetType().Name);
             _errorGeneral = "No se pudo registrar el parque solar. Intentá nuevamente.";
         }
     }

@@ -25,6 +25,42 @@
 </table>
 En este taller desarrollamos una aplicación web bajo la plataforma .NET, denominada SolarUY, para la gestión integral de parques solares del país.
 
+## Inicio rápido
+
+Necesitás **.NET 10 y MySQL 8.4**. Python 3 se utiliza para generar el hash de la contraseña de acceso. Ejecutá los comandos en PowerShell desde la raíz del repositorio, donde está `SolarUY.slnx`.
+
+**Primera configuración:**
+
+1. Encender MySQL y disponer de una base dedicada, por ejemplo `solaruy`.
+2. Crear el archivo de configuración local si todavía no existe:
+
+   ```powershell
+   if (-not (Test-Path SolarUY/appsettings.Local.json)) {
+       Copy-Item SolarUY/appsettings.Local.example.json SolarUY/appsettings.Local.json
+   }
+   ```
+
+3. Editar `SolarUY/appsettings.Local.json` con servidor, puerto, base y credenciales de MySQL. Configurar también un usuario de SolarUY con su hash de contraseña y el rol exacto `Administrador`, siguiendo la [guía de configuración y acceso](arnes/prompting/req002_cambio_base_datos/configuracion.md). El usuario de MySQL y el usuario de la aplicación son independientes; el archivo local queda excluido de Git.
+4. Restaurar las dependencias y preparar las tablas:
+
+   ```powershell
+   dotnet restore SolarUY.slnx
+   dotnet tool restore
+   dotnet ef database update --project SolarUY/SolarUY.csproj --startup-project SolarUY/SolarUY.csproj
+   ```
+
+**Para encenderlo en los siguientes usos**, iniciar MySQL y ejecutar:
+
+```powershell
+dotnet run --project SolarUY/SolarUY.csproj --launch-profile https
+```
+
+Esperar a que la terminal indique que la aplicación está escuchando y abrir [https://localhost:7178/cuenta/iniciar-sesion](https://localhost:7178/cuenta/iniciar-sesion). Iniciar sesión con el usuario de SolarUY configurado y entrar en **Registrar parque solar**. Al guardar nombre y ubicación, la confirmación muestra el ID y la capacidad inicial de `0 MW`.
+
+Para detener el proyecto, presionar `Ctrl+C` en la terminal. La configuración y los datos se conservan. Las tablas se actualizan mediante migraciones explícitas; la aplicación no las aplica automáticamente al arrancar.
+
+La [guía de configuración](arnes/prompting/req002_cambio_base_datos/configuracion.md) incluye los ejemplos completos y la solución a problemas de inicio. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/req002_cambio_base_datos/referencia_tecnica.md).
+
 <h2 align="center"> Decisiones Técnicas</h2>
 
 Decidimos usar una arquitectura modular, el cual consiste de la aplicación desplegada en una sola capa física (monolito) pero dividido en varios módulos distintos bien separados. 
@@ -36,6 +72,8 @@ También decidimos crear el proyecto como una aplicación web Blazor con renderi
 Blazor encaja mejor para una interfaz de monitoreo muy interactiva y desarrollar principalmente en C\#, y WebAssembly creemos que es la mejor opción tomando en cuenta el requerimiento de alta disponibilidad.
 
 Además, para el monitoreo en tiempo real vamos a utilizar SignalR.
+
+La persistencia actual utiliza **MySQL 8.4 con Entity Framework Core** y el proveedor oficial `MySql.EntityFrameworkCore`. La conexión se configura en el servidor mediante `SolarUY/appsettings.Local.json` y puede apuntar a una instancia local o remota. La aplicación y las herramientas de migración comparten esa configuración.
 
 <h2 align="center"> Diagrama de Arquitectura</h2>
 
@@ -98,17 +136,21 @@ Implementa la funcionalidad de \[CASO DE USO. EJ. (alta de parque solar)\] sigui
 
 Requiere .NET 10 y Python 3 para el generador auxiliar de hashes. Toda la funcionalidad se ejecuta en el servidor. No se registran usuarios desde el formulario de alta.
 
-## Base SQLite
+## Base MySQL
 
 Desde PowerShell (Windows), en la raíz del repositorio:
 
 ```powershell
-$env:ConnectionStrings__SolarUy = 'Data Source=C:/estudio/NET/SolarUY/solaruy-desarrollo.db'
+if (-not (Test-Path SolarUY/appsettings.Local.json)) {
+    Copy-Item SolarUY/appsettings.Local.example.json SolarUY/appsettings.Local.json
+}
 dotnet tool restore
 dotnet ef database update --project SolarUY/SolarUY.csproj --startup-project SolarUY/SolarUY.csproj
 ```
 
-La base no se migra automáticamente al arrancar; aplicar las migraciones antes de usar el alta. Para otros entornos, usar su ruta de conexión externa y el mismo procedimiento de migración. Los archivos SQLite locales se excluyen de Git.
+Antes de aplicar migraciones, editar `SolarUY/appsettings.Local.json` con la conexión a una base MySQL 8.4 vacía y dedicada. Ese archivo queda excluido de Git. La [guía de configuración MySQL](arnes/prompting/req002_cambio_base_datos/configuracion.md) explica cómo configurar el acceso y encender el proyecto. La [referencia técnica](arnes/prompting/req002_cambio_base_datos/referencia_tecnica.md) amplía TLS, permisos, prioridades de configuración, migraciones y diagnóstico. La conexión puede apuntar a otro equipo y puede sobrescribirse con `ConnectionStrings__SolarUy`.
+
+La base no se migra automáticamente al arrancar. Este cambio prepara un esquema nuevo y no importa datos anteriores ni elimina bases locales.
 
 ## Identidades provisionadas por el servidor
 
@@ -142,14 +184,14 @@ dotnet test tests/SolarUY.Domain.Tests/SolarUY.Domain.Tests.csproj
 dotnet test arnes/ValidacionDeCodigo/CodeQuality.Tests/CodeQuality.Tests.csproj
 ```
 
-Las verificaciones HTTP de aceptación usarán identidades efímeras independientes de estas cuentas y una base aislada, sin modificar bases existentes.
+Las verificaciones HTTP de aceptación utilizan identidades efímeras independientes de estas cuentas y esquemas MySQL aislados, sin modificar bases existentes. Preparar las opciones y permisos de aceptación indicados en la [referencia técnica](arnes/prompting/req002_cambio_base_datos/referencia_tecnica.md).
 
 Después de compilar, ejecutar con Python nativo de Windows:
 
 ```powershell
-python arnes/prompting/req001_alta_parque_solar/verificar_aceptacion.py
+python arnes/prompting/req002_cambio_base_datos/verificar_aceptacion.py
 ```
 
-El arnés genera su propia base, aplica la migración, inicia un servidor oculto en `127.0.0.1:5284`, verifica F01–F22 y lo detiene al terminar. Ese puerto debe estar libre. Registra resultados y logs en `artifacts/req001`, excluido de Git. La opción `--mantener-servidor` lo deja activo solo si todas las verificaciones pasan, para completar F23 con teclado; el PID queda en `artifacts/req001/ultima-aceptacion.json`. Las credenciales efímeras de ese servidor se guardan únicamente en su directorio local de evidencia.
+El arnés crea un esquema nuevo identificado, aplica la migración e inicia un servidor oculto en `127.0.0.1:5285` (puerto configurable). Comprueba persistencia, Unicode, concurrencia, errores y seguridad; registra resultados depurados en `artifacts/req002`, excluido de Git. Limpia exclusivamente los recursos efímeros que creó. La opción `--mantener-servidor` permite completar el recorrido con teclado. La carpeta `req001` se conserva como antecedente; su script histórico no valida MySQL.
 ## 
 

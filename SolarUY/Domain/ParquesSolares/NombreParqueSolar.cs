@@ -22,5 +22,10 @@ public sealed record NombreParqueSolar
 
         Valor = nombre.Trim().Normalize(NormalizationForm.FormC);
         Clave = Valor.ToUpperInvariant();
+        if (Valor.EnumerateRunes().Count() > 100 || Clave.EnumerateRunes().Count() > 100)
+        {
+            throw new DatosParqueSolarInvalidosException("Nombre",
+                "El nombre del parque solar no puede superar los 100 caracteres.");
+        }
     }
 }

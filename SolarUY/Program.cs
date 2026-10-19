@@ -12,14 +12,21 @@ using SolarUY.Infrastructure.Seguridad;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+PersistenciaConfiguration.CargarConfiguracion(builder.Configuration,
+    builder.Environment.ContentRootPath, builder.Environment.EnvironmentName, args);
+// Los errores del conector pueden incluir SQL o datos del usuario en sus mensajes.
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Connection", LogLevel.None);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Update", LogLevel.None);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Query", LogLevel.None);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
-var conexion = builder.Configuration.GetConnectionString("SolarUy")
-    ?? throw new InvalidOperationException("Configurá ConnectionStrings:SolarUy antes de iniciar SolarUY.");
-builder.Services.AddDbContext<SolarUyDbContext>(options => options.UseSqlite(conexion));
+var conexion = PersistenciaConfiguration.ObtenerConexion(builder.Configuration);
+builder.Services.AddDbContext<SolarUyDbContext>(options =>
+    PersistenciaConfiguration.ConfigurarContexto(options, conexion));
 builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
 builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
 builder.Services.AddHttpContextAccessor();

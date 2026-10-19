@@ -7,9 +7,13 @@ public sealed class SolarUyDbContextFactory : IDesignTimeDbContextFactory<SolarU
 {
     public SolarUyDbContext CreateDbContext(string[] args)
     {
-        var conexion = Environment.GetEnvironmentVariable("ConnectionStrings__SolarUy")
-            ?? throw new InvalidOperationException("Configurá ConnectionStrings__SolarUy para ejecutar las migraciones.");
-        var options = new DbContextOptionsBuilder<SolarUyDbContext>().UseSqlite(conexion).Options;
-        return new SolarUyDbContext(options);
+        var configuracion = new ConfigurationBuilder();
+        PersistenciaConfiguration.CargarConfiguracion(configuracion,
+            PersistenciaConfiguration.ResolverDirectorioProyecto(),
+            PersistenciaConfiguration.ObtenerEntorno(args), args);
+        var conexion = PersistenciaConfiguration.ObtenerConexion(configuracion.Build());
+        var options = new DbContextOptionsBuilder<SolarUyDbContext>();
+        PersistenciaConfiguration.ConfigurarContexto(options, conexion);
+        return new SolarUyDbContext(options.Options);
     }
 }

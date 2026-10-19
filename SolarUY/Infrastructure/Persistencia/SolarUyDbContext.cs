@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SolarUY.Domain.ParquesSolares;
+using MySql.EntityFrameworkCore.Extensions;
 
 namespace SolarUY.Infrastructure.Persistencia;
 
@@ -11,6 +12,7 @@ public sealed class SolarUyDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasCharSet("utf8mb4");
         modelBuilder.ApplyConfiguration(new ParqueSolarConfiguration());
     }
 }
