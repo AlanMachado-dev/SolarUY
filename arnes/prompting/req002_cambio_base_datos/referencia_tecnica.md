@@ -89,13 +89,7 @@ dotnet ef database update --project SolarUY/SolarUY.csproj --startup-project Sol
 
 Revisar el SQL antes de actualizar. La migración `InicialMySql` ya está incluida: **no volver a generarla**. Ejecutar `database update` otra vez debe indicar que el esquema está actualizado y conservar los registros. No usar `EnsureCreated`, actualización automática al arrancar, `database update 0`, ni borrar archivos de bases anteriores.
 
-Las identidades provisionadas existentes se mantienen. Para generar hashes sin guardar contraseñas en texto:
-
-```powershell
-python arnes/prompting/req001_alta_parque_solar/generar_hash.py
-```
-
-Configurar externamente `Autenticacion__Usuarios__0__Nombre`, `Autenticacion__Usuarios__0__PasswordHash` y `Autenticacion__Usuarios__0__Roles__0=Administrador`. Los nombres deben ser únicos y el rol distingue mayúsculas. No hay usuarios ni contraseñas predeterminados. Luego:
+El acceso con usuarios locales y hashes descrito originalmente en req002 es histórico. La configuración vigente y el administrador se preparan mediante [OpenID Connect en req003](../req003_implementacion_openID/configuracion.md), conservando esta conexión MySQL. Luego:
 
 ```powershell
 dotnet run --project SolarUY/SolarUY.csproj --launch-profile https
@@ -147,7 +141,7 @@ python arnes/prompting/req002_cambio_base_datos/verificar_aceptacion.py
 
 Opciones: `--puerto 5285`, `--solo-infraestructura` y `--mantener-servidor`. Antes de crear recursos, el arnés rechaza un nombre no identificado o un esquema ya existente. Crea un segundo esquema efímero para comprobar las prioridades. Durante esa comprobación sustituye temporalmente la conexión del archivo local, conserva sus bytes originales en memoria y los restaura en `finally`; ejecutar sin ediciones concurrentes de ese archivo.
 
-Genera identidades aleatorias para `Administrador`, `Usuario` y `administrador`, inicia únicamente su servidor oculto y lo detiene al terminar, incluso ante fallos. Los casos incluyen esquema, GUID, lectura, duplicado concurrente, clave primaria, permisos, HTTP, reinicio, Unicode, longitudes, solicitudes manipuladas, autorización, antifalsificación y fallos de escritura mediante un trigger exclusivo del esquema efímero. Los logs se depuran antes de guardarse.
+**Arnés histórico incompatible con el acceso OIDC actual:** la aceptación de login se sustituye por req003; no ejecutarlo como evidencia de identidad externa. Generaba identidades aleatorias para `Administrador`, `Usuario` y `administrador`, inicia únicamente su servidor oculto y lo detiene al terminar, incluso ante fallos. Los casos incluyen esquema, GUID, lectura, duplicado concurrente, clave primaria, permisos, HTTP, reinicio, Unicode, longitudes, solicitudes manipuladas, autorización, antifalsificación y fallos de escritura mediante un trigger exclusivo del esquema efímero. Los logs se depuran antes de guardarse.
 
 Las evidencias quedan en `artifacts/req002/ejecucion-<id>/resultados.json`, logs de migraciones y servidor; `artifacts/req002/ultima-ejecucion.json` apunta al último resultado. Si faltan MySQL, credenciales o permisos, devuelve un resultado no exitoso y conserva el caso pendiente. Un recorrido con teclado se registra separadamente; la aceptación automática no lo da por hecho.
 
@@ -164,4 +158,3 @@ Este cambio prepara un esquema nuevo y no importa registros del motor anterior. 
 - [Proveedor oficial versionado y dependencias](https://www.nuget.org/packages/MySql.EntityFrameworkCore/10.0.9).
 - [Configuración EF Core de Connector/NET](https://dev.mysql.com/doc/connector-net/en/connector-net-entityframework-core.html).
 - [Colaciones binarias y NO PAD de MySQL](https://dev.mysql.com/doc/refman/8.4/en/charset-binary-collations.html).
-

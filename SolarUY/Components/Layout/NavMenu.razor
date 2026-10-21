@@ -11,12 +11,30 @@
         <AuthorizeView Roles="Administrador">
             <Authorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="parques-solares/nuevo">Registrar parque solar</NavLink>
+                    <NavLink class="nav-link" href="parques-solares/nuevo" data-enhance-nav="false">Registrar parque solar</NavLink>
                 </div>
             </Authorized>
         </AuthorizeView>
         <AuthorizeView>
             <Authorized>
+                <div class="px-3 text-white" role="status">
+                    <p>Sesión iniciada: @(context.User.Identity?.Name ?? "Usuario autenticado")</p>
+                    <p>
+                        Roles:
+                        @if (context.User.IsInRole("Administrador"))
+                        {
+                            <span>Administrador </span>
+                        }
+                        @if (context.User.IsInRole("Operador"))
+                        {
+                            <span>Operador </span>
+                        }
+                        @if (!context.User.IsInRole("Administrador") && !context.User.IsInRole("Operador"))
+                        {
+                            <span>Sin roles reconocidos</span>
+                        }
+                    </p>
+                </div>
                 <div class="nav-item px-3">
                     <form method="post" action="/cuenta/cerrar-sesion" data-enhance="false">
                         <AntiforgeryToken />
@@ -26,27 +44,11 @@
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="cuenta/iniciar-sesion">Iniciar sesión</NavLink>
+                    <NavLink class="nav-link" href="cuenta/iniciar-sesion" data-enhance-nav="false">Iniciar sesión</NavLink>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+        
     </nav>
 </div>
 

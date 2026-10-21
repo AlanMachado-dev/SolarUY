@@ -27,7 +27,7 @@ En este taller desarrollamos una aplicación web bajo la plataforma .NET, denomi
 
 ## Inicio rápido
 
-Necesitás **.NET 10 y MySQL 8.4**. Python 3 se utiliza para generar el hash de la contraseña de acceso. Ejecutá los comandos en PowerShell desde la raíz del repositorio, donde está `SolarUY.slnx`.
+Necesitás **.NET 10 y MySQL 8.4**. El acceso requiere una aplicación Auth0 de tipo Regular Web Application. Ejecutá los comandos en PowerShell desde la raíz del repositorio, donde está `SolarUY.slnx`.
 
 **Primera configuración:**
 
@@ -40,7 +40,7 @@ Necesitás **.NET 10 y MySQL 8.4**. Python 3 se utiliza para generar el hash de 
    }
    ```
 
-3. Editar `SolarUY/appsettings.Local.json` con servidor, puerto, base y credenciales de MySQL. Configurar también un usuario de SolarUY con su hash de contraseña y el rol exacto `Administrador`, siguiendo la [guía de configuración y acceso](arnes/prompting/req002_cambio_base_datos/configuracion.md). El usuario de MySQL y el usuario de la aplicación son independientes; el archivo local queda excluido de Git.
+3. Editar `SolarUY/appsettings.Local.json` con servidor, puerto, base y credenciales de MySQL. Agregar la sección privada OpenIdConnect y preparar el administrador en Auth0, siguiendo la [guía de acceso externo](arnes/prompting/req003_implementacion_openID/configuracion.md). El usuario de MySQL y el usuario de la aplicación son independientes; el archivo local queda excluido de Git.
 4. Restaurar las dependencias y preparar las tablas:
 
    ```powershell
@@ -55,11 +55,11 @@ Necesitás **.NET 10 y MySQL 8.4**. Python 3 se utiliza para generar el hash de 
 dotnet run --project SolarUY/SolarUY.csproj --launch-profile https
 ```
 
-Esperar a que la terminal indique que la aplicación está escuchando y abrir [https://localhost:7178/cuenta/iniciar-sesion](https://localhost:7178/cuenta/iniciar-sesion). Iniciar sesión con el usuario de SolarUY configurado y entrar en **Registrar parque solar**. Al guardar nombre y ubicación, la confirmación muestra el ID y la capacidad inicial de `0 MW`.
+Esperar a que la terminal indique que la aplicación está escuchando y abrir [https://localhost:7178/cuenta/iniciar-sesion](https://localhost:7178/cuenta/iniciar-sesion). Pulsar **Iniciar sesión con proveedor externo**, completar Universal Login con la cuenta administradora preparada y entrar en **Registrar parque solar**. Al guardar nombre y ubicación, la confirmación muestra el ID y la capacidad inicial de `0 MW`.
 
 Para detener el proyecto, presionar `Ctrl+C` en la terminal. La configuración y los datos se conservan. Las tablas se actualizan mediante migraciones explícitas; la aplicación no las aplica automáticamente al arrancar.
 
-La [guía de configuración](arnes/prompting/req002_cambio_base_datos/configuracion.md) incluye los ejemplos completos y la solución a problemas de inicio. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/req002_cambio_base_datos/referencia_tecnica.md).
+La [guía de acceso externo](arnes/prompting/req003_implementacion_openID/configuracion.md) incluye Auth0, roles, configuración privada y diagnóstico. La [guía MySQL](arnes/prompting/req002_cambio_base_datos/configuracion.md) conserva la preparación del esquema. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/req002_cambio_base_datos/referencia_tecnica.md).
 
 <h2 align="center"> Decisiones Técnicas</h2>
 
@@ -130,4 +130,4 @@ Implementa la funcionalidad de \[CASO DE USO. EJ. (alta de parque solar)\] sigui
 | **Registrar la ejecución de un mantenimiento** | Operador | Informar qué trabajo se realizó, cuándo se hizo y cuál fue el resultado. |
 | **Consultar información con lenguaje natural** | Operador | Formular preguntas como “¿cuánta energía generó este parque ayer?” y recibir respuestas limitadas a la información que puede consultar. |
 ## 
-## 
+##

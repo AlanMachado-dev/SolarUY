@@ -46,32 +46,7 @@ Este archivo queda excluido de Git. `SslMode=Required` exige una conexión cifra
 
 ### 3. Configurar el acceso a SolarUY
 
-Si ya tenés un usuario de la aplicación configurado, continuá al paso siguiente. Si no, elegí una contraseña y generá su hash:
-
-```powershell
-python arnes/prompting/req001_alta_parque_solar/generar_hash.py
-```
-
-El comando pide la contraseña sin mostrarla y devuelve un texto que debés copiar. En `SolarUY/appsettings.Local.json`, agregá `Autenticacion` junto a `ConnectionStrings`. El archivo puede quedar así:
-
-```json
-{
-  "ConnectionStrings": {
-    "SolarUy": "Server=localhost;Port=3306;Database=solaruy;User ID=<usuario-mysql>;Password=<contraseña-mysql>;SslMode=Required;"
-  },
-  "Autenticacion": {
-    "Usuarios": [
-      {
-        "Nombre": "administrador-local",
-        "PasswordHash": "<hash generado>",
-        "Roles": ["Administrador"]
-      }
-    ]
-  }
-}
-```
-
-Conservá tu conexión real y reemplazá `<hash generado>` por el resultado del comando. Para iniciar sesión usarás `administrador-local` y la contraseña que elegiste, no el hash. Podés cambiar ese nombre; el rol debe escribirse exactamente `Administrador`.
+El acceso local con hashes de req002 es un antecedente histórico. La versión actual usa OpenID Connect: preparar la aplicación Auth0, sus roles y la sección privada siguiendo la [guía de req003](../req003_implementacion_openID/configuracion.md). Conservar la conexión MySQL del paso anterior. Ya no se utiliza Autenticacion:Usuarios.
 
 ### 4. Preparar el proyecto y sus tablas
 
@@ -93,7 +68,7 @@ dotnet run --project SolarUY/SolarUY.csproj --launch-profile https
 
 Esperá a que la terminal indique que la aplicación está escuchando. Con el perfil actual, abrí [https://localhost:7178/cuenta/iniciar-sesion](https://localhost:7178/cuenta/iniciar-sesion).
 
-Iniciá sesión con el usuario de SolarUY del paso 3. Luego entrá en **Registrar parque solar**, completá nombre y ubicación y enviá el formulario. La confirmación muestra el ID asignado y la capacidad inicial de `0 MW`.
+Iniciá sesión con el proveedor externo preparado en el paso 3. Luego entrá en **Registrar parque solar**, completá nombre y ubicación y enviá el formulario. La confirmación muestra el ID asignado y la capacidad inicial de `0 MW`.
 
 Para detener la aplicación, presioná `Ctrl+C` en esa terminal. En los siguientes usos alcanza con encender MySQL y repetir `dotnet run`; la configuración y los datos quedan guardados. Si modificás el archivo local, reiniciá la aplicación.
 
@@ -103,8 +78,8 @@ Para detener la aplicación, presioná `Ctrl+C` en esa terminal. En los siguient
 | --- | --- |
 | No conecta a MySQL | Que el servicio esté encendido y coincidan servidor, puerto, base, usuario y contraseña. |
 | Faltan las tablas | Ejecutar `dotnet ef database update` del paso 4. |
-| Solicita configurar identidades | Completar `Autenticacion:Usuarios` con nombre, hash y rol, como en el paso 3. |
-| No permite iniciar sesión o registrar parques | Usar la contraseña original y comprobar el rol exacto `Administrador`. |
+| Solicita configurar OpenIdConnect | Completar la sección privada según la guía de req003. |
+| No permite iniciar sesión o registrar parques | Revisar Auth0, Action de roles y rol exacto `Administrador` según req003. |
 | El navegador no confía en el certificado local | Ejecutar `dotnet dev-certs https --trust` y volver a abrir la dirección HTTPS. |
 
 Si una configuración local no parece aplicarse, revisar si existe la variable `ConnectionStrings__SolarUy`: las variables de entorno tienen prioridad sobre el archivo local y los argumentos tienen prioridad sobre ambas.

@@ -3,7 +3,7 @@ using SolarUY.Components;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using SolarUY.Application.ParquesSolares;
 using SolarUY.Application.ParquesSolares.Servicios;
@@ -19,6 +19,13 @@ builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogL
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Connection", LogLevel.None);
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Update", LogLevel.None);
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Query", LogLevel.None);
+// Los mensajes internos del protocolo pueden contener respuestas y tokens del proveedor.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication.OpenIdConnect", LogLevel.None);
+builder.Logging.AddFilter("Microsoft.IdentityModel", LogLevel.None);
+builder.Logging.AddFilter("System.IdentityModel", LogLevel.None);
+// Evita registrar query strings de callbacks incluso al aumentar el nivel global.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.None);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics", LogLevel.None);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -29,37 +36,20 @@ builder.Services.AddDbContext<SolarUyDbContext>(options =>
     PersistenciaConfiguration.ConfigurarContexto(options, conexion));
 builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
 builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IUsuarioActualService, UsuarioActualService>();
-builder.Services.AddScoped<CredencialesService>();
-builder.Services.AddScoped<IPasswordHasher<UsuarioConfigurado>, PasswordHasher<UsuarioConfigurado>>();
-builder.Services.AddOptions<AutenticacionOptions>()
-    .Bind(builder.Configuration.GetSection("Autenticacion"))
-    .Validate(options => options.Usuarios.Count > 0
-        && options.Usuarios.All(usuario => !string.IsNullOrWhiteSpace(usuario.Nombre)
-            && !string.IsNullOrWhiteSpace(usuario.PasswordHash))
-        && options.Usuarios.Select(usuario => usuario.Nombre).Distinct(StringComparer.Ordinal).Count()
-            == options.Usuarios.Count,
-        "Configurá identidades únicas y hashes de contraseña en Autenticacion:Usuarios.")
-    .ValidateOnStart();
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/cuenta/iniciar-sesion";
-        options.AccessDeniedPath = "/cuenta/acceso-denegado";
-        options.Cookie.Name = "SolarUY.Sesion";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-            ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-        options.SlidingExpiration = false;
-    });
+SeguridadConfiguration.AgregarAutenticacionExterna(builder.Services, builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        // Una respuesta con cuerpo evita reejecutar el POST en la página general de errores.
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await context.HttpContext.Response.WriteAsync(
+            "Se alcanzó el límite de intentos. Esperá un minuto para volver a iniciar sesión.", cancellationToken);
+    };
     options.AddPolicy("inicio-sesion", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
         _ => new FixedWindowRateLimiterOptions
@@ -90,7 +80,7 @@ app.UseRateLimiter();
 app.UseAntiforgery();
 
 app.MapPost("/cuenta/autenticar", async (HttpContext context,
-    IAntiforgery antiforgery, CredencialesService credenciales) =>
+    IAntiforgery antiforgery, ILogger<Program> logger) =>
 {
     try
     {
@@ -102,17 +92,25 @@ app.MapPost("/cuenta/autenticar", async (HttpContext context,
     }
 
     var datos = await context.Request.ReadFormAsync(context.RequestAborted);
-    var usuario = credenciales.Validar(datos["Nombre"].ToString(), datos["Password"].ToString());
-    if (usuario is null)
+    var propiedades = new AuthenticationProperties
     {
-        return Results.LocalRedirect("/cuenta/iniciar-sesion?error=credenciales");
+        RedirectUri = RetornoLocal.Validar(datos["ReturnUrl"].ToString()),
+        IsPersistent = false
+    };
+    try
+    {
+        await context.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, propiedades);
+        return Results.Empty;
     }
-
-    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, usuario);
-    return Results.LocalRedirect("/parques-solares/nuevo");
+    catch (Exception)
+    {
+        logger.LogWarning("No se pudo iniciar el acceso externo. Código: oidc_challenge.");
+        return Results.LocalRedirect("/cuenta/iniciar-sesion?error=proveedor");
+    }
 }).RequireRateLimiting("inicio-sesion");
 
-app.MapPost("/cuenta/cerrar-sesion", async (HttpContext context, IAntiforgery antiforgery) =>
+app.MapPost("/cuenta/cerrar-sesion", async (HttpContext context, IAntiforgery antiforgery,
+    ILogger<Program> logger) =>
 {
     try
     {
@@ -123,8 +121,23 @@ app.MapPost("/cuenta/cerrar-sesion", async (HttpContext context, IAntiforgery an
         return Results.BadRequest("El formulario venció. Recargá la página.");
     }
 
+    var sesion = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-    return Results.LocalRedirect("/");
+    SeguridadConfiguration.EliminarCookieAnterior(context);
+    var propiedades = new AuthenticationProperties { RedirectUri = "/" };
+    var token = sesion.Properties?.GetTokenValue("id_token");
+    if (!string.IsNullOrEmpty(token))
+        propiedades.SetParameter("id_token_hint", token);
+    try
+    {
+        await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme, propiedades);
+        return Results.Empty;
+    }
+    catch (Exception)
+    {
+        logger.LogWarning("Sesión local cerrada; no se completó el cierre externo. Código: oidc_logout.");
+        return Results.LocalRedirect("/cuenta/iniciar-sesion?error=cierre");
+    }
 }).RequireAuthorization();
 
 app.MapStaticAssets();
