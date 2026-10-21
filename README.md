@@ -81,7 +81,7 @@ La persistencia actual utiliza **MySQL 8.4 con Entity Framework Core** y el prov
 
 <h2 align="center">Modelo de Dominio </h2>
 
-<img width="1239" height="647" alt="image1" src="https://github.com/user-attachments/assets/24013405-6b7d-4e85-8ae8-df316606ce14" />
+<img width="1034" height="569" alt="image2" src="https://github.com/user-attachments/assets/d5fecc92-ec00-4a3c-8590-7449eea077c5" />
 
 <h2 align="center"> Proceso de Generación de Código con IA</h2>
 
