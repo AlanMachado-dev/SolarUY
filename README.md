@@ -104,7 +104,8 @@ El [índice de requerimientos y modificaciones](arnes/prompting/README.md) ident
 Usá la skill \[LE MARCAMOS LA SKILL sdd-generar-specs CON /sdd generar specs\] para generar las especificaciones de la carpeta /arnes/prompting/requerimientos/\[CARPETA DEL REQUERIMIENTO. EJ. (req001\_alta\_parque\_solar)\]
 
 **Prompt para solicitar que genere el tasks.md**  
-Basándote en el diseño propuesto en el archivo arnes/prompting/requerimientos/\[CARPETA DEL REQUERIMIENTO\]/specs.md, genera un plan de implementación detallado. Desglosa el trabajo capa por capa en tareas pequeñas y atómicas. Genera un archivo llamado tasks.md utilizando el formato de checkboxes de Markdown (- \[ \]) para que podamos llevar el seguimiento del avance. Asegúrate de incluir tareas para correr las pruebas de ArchUnitNET y validar el código.
+Usá la skill \[LE MARCAMOS LA SKILL sdd-generar-tasks CON /sdd generar tasks\] para generar las tareas de la carpeta /arnes/prompting/requerimientos/\[CARPETA DEL REQUERIMIENTO. EJ. (req001\_alta\_parque\_solar)\]
+
 
 **Prompt para solicitar que implemente el requerimiento**  
 Implementa la funcionalidad de \[CASO DE USO. EJ. (alta de parque solar)\] siguiendo estrictamente las decisiones arquitectónicas de arnes/prompting/requerimientos/\[CARPETA DEL REQUERIMIENTO\]/specs.md. Ejecuta paso por paso el plan detallado en tasks.md de la misma carpeta que specs.md. A medida que completes cada subtarea, marca el checkbox correspondiente con una x (- \[x\]). No avances a nueva capa hasta que el código de la actual compile correctamente y pase nuestras reglas definidas en los test unitarios.
