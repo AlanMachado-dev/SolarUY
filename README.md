@@ -77,7 +77,7 @@ La persistencia actual utiliza **MySQL 8.4 con Entity Framework Core** y el prov
 
 <h2 align="center"> Diagrama de Arquitectura</h2>
 
-<img width="1647" height="851" alt="image2" src="https://github.com/user-attachments/assets/ca5bd1ff-7e54-4d38-95e7-7162e3de1435" />
+<img width="1229" height="766" alt="diagrama_arquitectura" src="https://github.com/user-attachments/assets/01f42b35-c4e6-488c-bb4b-43904e2229c3" />
 
 <h2 align="center">Modelo de Dominio </h2>
 
