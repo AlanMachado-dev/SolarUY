@@ -1,6 +1,6 @@
 # Reglas de Arquitectura y Diseño (Proyecto Blazor Clean Architecture)
 
-Este proyecto sigue los principios de Clean Architecture. Al generar, refactorizar o validar código, el agente debe asegurar que se cumplan las siguientes reglas (preparadas para ser validadas en el futuro con ArchUnitNET):
+Este proyecto sigue los principios de Clean Architecture. Al generar, refactorizar o validar código, el agente debe asegurar que se cumplan las siguientes reglas, comprobadas por los controles existentes de ArchUnitNET y la revisión del diseño:
 
 ## 1. Reglas de Dependencia de Capas (El Círculo de Clean Architecture)
 - **Aislamiento del Dominio:** La capa de `Domain` es el núcleo. **NUNCA** debe importar paquetes de Entity Framework Core, ASP.NET, componentes de UI, ni hacer referencias a otras capas del proyecto. Solo usa C# puro.
@@ -9,8 +9,9 @@ Este proyecto sigue los principios de Clean Architecture. Al generar, refactoriz
 - **La Infraestructura es un detalle:** La capa de `Infrastructure` (Base de datos, APIs) implementa las interfaces definidas en `Application`. Ninguna otra capa debe depender de `Infrastructure` directamente (la inyección se configura solo al arrancar la app).
 
 ## 2. Reglas de Dominio y Datos
-- **Flexibilidad en Entidades:** Se permite el uso de `setters` públicos (`public set`) en las entidades del Dominio para facilitar el aprendizaje con Entity Framework Core. Sin embargo, si una actualización de datos requiere validaciones complejas, el agente debe proponer encapsularla en un método de la entidad en lugar de hacer la lógica dispersa.
-- **Uso de Clases Anémicas Permitido Inicialmente:** Está permitido que las entidades funcionen principalmente como contenedores de datos en etapas tempranas.
+- **Reglas de negocio en el dominio:** Las entidades y objetos de valor encapsulan sus invariantes y validaciones según [Modelado de dominio](4_modelado_dominio.md). No distribuir esas reglas entre componentes de UI o detalles de persistencia.
+- **Persistencia:** La forma de mapear una entidad con EF Core no debe permitir eludir sus invariantes.
+- **DTO:** Los contratos de entrada y salida de Application pueden ser contenedores de datos. No necesitan comportamiento de dominio ni sustituyen las entidades.
 
 ## 3. Reglas de Repositorios y Abstracciones
 - **Inversión de Dependencias (DIP):** Todo acceso a la base de datos se hace mediante interfaces. Las interfaces de los repositorios (ej. `IUsuarioRepository`) se definen idealmente en `Application`, pero su implementación concreta (ej. `UsuarioRepository`) va **obligatoriamente** en `Infrastructure`.

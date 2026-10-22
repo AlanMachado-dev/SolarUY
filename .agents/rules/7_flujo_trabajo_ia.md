@@ -12,6 +12,16 @@ No asumas que tu código es perfecto. Cada vez que crees, modifiques o refactori
 - Debes usar tu herramienta de terminal (ej. `run_command`) para ejecutar las pruebas automatizadas del proyecto de control de calidad.
 - El comando a ejecutar es: `dotnet test` apuntando al proyecto `CodeQuality.Tests` (deberás buscar la ruta en el espacio de trabajo del usuario si no es evidente).
 
+Al finalizar cada capa de implementación, ejecutar desde la raíz los tres controles:
+
+~~~powershell
+dotnet build SolarUY.slnx
+dotnet test tests/SolarUY.Domain.Tests/SolarUY.Domain.Tests.csproj
+dotnet test arnes/ValidacionDeCodigo/CodeQuality.Tests/CodeQuality.Tests.csproj
+~~~
+
+No avanzar a la siguiente capa hasta que compile y pasen las pruebas de Domain y ArchUnitNET. Registrar los resultados y distinguir advertencias preexistentes de errores nuevos.
+
 ## 3. Auto-Corrección
 Si al ejecutar `dotnet test` algún test de ArchUnitNET falla, **NO le pidas al usuario que lo arregle ni des por terminada tu tarea.**
 1. Lee el mensaje de error del test fallido (que indica qué regla arquitectónica rompiste).
@@ -28,3 +38,8 @@ Solo debes reportar tu trabajo al usuario cuando todas las pruebas pasen en verd
 - **Regla de Inmutabilidad:** Tienes estrictamente **PROHIBIDO** modificar los archivos del proyecto `CodeQuality.Tests` (los tests de ArchUnitNET) para lograr que una prueba pase. 
 - **Resolución de Conflictos:** Si un test arquitectónico falla, tu obligación es SIEMPRE corregir el código fuente del sistema para que cumpla con el test. NUNCA debes relajar ni alterar el test para adaptarlo al código mal diseñado.
 - **Intervención Humana:** Si tras analizar un error crees genuinamente que la regla de ArchUnitNET está mal planteada, está desactualizada, o se requiere una excepción justificada para el diseño actual, debes **DETENERTE**. Explica la situación al usuario humano y solicita su autorización explícita antes de editar cualquier archivo de pruebas de calidad.
+
+## 6. Organización de pruebas y evidencias
+
+- Si se necesitan pruebas funcionales auxiliares para complementar ArchUnitNET y verificar una implementación, guardarlas en arnes/prompting/tests/<identificador>/, por ejemplo req004 o mod002. No ubicarlas junto a requirements.md, specs.md o tasks.md.
+- Guardar evidencias depuradas en artifacts/, excluido de Git, sin secretos ni tokens. Las comprobaciones auxiliares no sustituyen las pruebas existentes ni las aceptaciones reales requeridas por el plan.

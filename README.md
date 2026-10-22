@@ -40,7 +40,7 @@ Necesitás **.NET 10 y MySQL 8.4**. El acceso requiere una aplicación Auth0 de 
    }
    ```
 
-3. Editar `SolarUY/appsettings.Local.json` con servidor, puerto, base y credenciales de MySQL. Agregar la sección privada OpenIdConnect y preparar el administrador en Auth0, siguiendo la [guía de acceso externo](arnes/prompting/req003_implementacion_openID/configuracion.md). El usuario de MySQL y el usuario de la aplicación son independientes; el archivo local queda excluido de Git.
+3. Editar `SolarUY/appsettings.Local.json` con servidor, puerto, base y credenciales de MySQL. Agregar la sección privada OpenIdConnect y preparar el administrador en Auth0, siguiendo la [guía de acceso externo](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md). El usuario de MySQL y el usuario de la aplicación son independientes; el archivo local queda excluido de Git.
 4. Restaurar las dependencias y preparar las tablas:
 
    ```powershell
@@ -59,7 +59,7 @@ Esperar a que la terminal indique que la aplicación está escuchando y abrir [h
 
 Para detener el proyecto, presionar `Ctrl+C` en la terminal. La configuración y los datos se conservan. Las tablas se actualizan mediante migraciones explícitas; la aplicación no las aplica automáticamente al arrancar.
 
-La [guía de acceso externo](arnes/prompting/req003_implementacion_openID/configuracion.md) incluye Auth0, roles, configuración privada y diagnóstico. La [guía MySQL](arnes/prompting/req002_cambio_base_datos/configuracion.md) conserva la preparación del esquema. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/req002_cambio_base_datos/referencia_tecnica.md).
+La [guía de acceso externo](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md) incluye Auth0, roles, configuración privada y diagnóstico. La [guía MySQL](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md) conserva la preparación del esquema. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).
 
 <h2 align="center"> Decisiones Técnicas</h2>
 
@@ -90,26 +90,24 @@ Para este proyecto utilizamos la generación de código con un agente IA, espec�
 El objetivo de programar de esta forma no es vibe-codear, ya que nos interesa la calidad del software y queremos priorizar la misma, no solo las funcionalidades. Para esto debemos entender como trabaja el software construido, dándole indicaciones al modelo (reglas no deterministas), y verificando lo realizado (chequeos deterministas) con SonarQube y   
 ArchUnitNet. Le indicamos un flujo de trabajo creando un loop con la solicitud de intervención manual (human in the loop). Todo esto es nuestro arnés (harness) de programación.
 
-**Para configurar la skill para generar specs en ChatGPT (Windows):**
+**Configuración del agente y skills del proyecto:**
 
-* Entrar a C:\\Users\\\[TU USUARIO\]  
-* Crear las carpetas **.agents\\skills**.  
-* Copiar la carpeta completa sdd-generar-specs desde:  
-  * SolarUY\\arnes\\.agents\\skills  
-* Y pegarla en la carpeta creada anteriormente, quedando finalmente:  
-  * C:\\Users\\\[TU USUARIO\]\\.agents\\skills\\sdd-generar-specs\\SKILL.md  
-* Por último reiniciar la app de Chat GPT y verificar que la detecte
+Las instrucciones compartidas están en [AGENTS.md](AGENTS.md), que remite a las reglas de [.agents/rules](.agents/rules). Los diagramas oficiales están en [.agents/Images](.agents/Images).
 
-En el menú de la izquierda clickear en la pestaña "Complementos", luego "Habilidades" donde se mostrarán todas las skills. En el medio de la pantalla habrán 2 tabs, una de "Sistema" y una de "SolarUY" donde al entrar deberían ver la skill ya lista para ser utilizada.
+Las skills [sdd-generar-specs](.agents/skills/sdd-generar-specs/SKILL.md) y [sdd-generar-tasks](.agents/skills/sdd-generar-tasks/SKILL.md) se mantienen en la raíz. Codex puede descubrirlas desde el repositorio; para trabajar en SolarUY no es necesario copiarlas a la carpeta personal ni mantener duplicados en el arnés.
+
+Para generar especificaciones usar $sdd-generar-specs; para planificar tareas usar $sdd-generar-tasks, indicando la carpeta del requerimiento o modificación. Ver la [organización del arnés](arnes/README.md).
+
+El [índice de requerimientos y modificaciones](arnes/prompting/README.md) identifica las carpetas vigentes, las pruebas auxiliares y los nombres históricos de sus evidencias.
 
 **Prompt para solicitar que genere el specs.md:**  
-Usá la skill \[LE MARCAMOS LA SKILL sdd-generar-specs CON /sdd generar specs\] para generar las especificaciones de la carpeta /arnes/prompting/\[CARPETA DEL REQUERIMIENTO. EJ. (req001\_alta\_parque\_solar)\]
+Usá la skill \[LE MARCAMOS LA SKILL sdd-generar-specs CON /sdd generar specs\] para generar las especificaciones de la carpeta /arnes/prompting/requerimientos/\[CARPETA DEL REQUERIMIENTO. EJ. (req001\_alta\_parque\_solar)\]
 
 **Prompt para solicitar que genere el tasks.md**  
-Basándote en el diseño propuesto en el archivo arnes/prompting/\[CARPETA DEL REQUERIMIENTO\]/spec.md, genera un plan de implementación detallado. Desglosa el trabajo capa por capa en tareas pequeñas y atómicas. Genera un archivo llamado tasks.md utilizando el formato de checkboxes de Markdown (- \[ \]) para que podamos llevar el seguimiento del avance. Asegúrate de incluir tareas para correr las pruebas de ArchUnitNET y validar el código.
+Basándote en el diseño propuesto en el archivo arnes/prompting/requerimientos/\[CARPETA DEL REQUERIMIENTO\]/specs.md, genera un plan de implementación detallado. Desglosa el trabajo capa por capa en tareas pequeñas y atómicas. Genera un archivo llamado tasks.md utilizando el formato de checkboxes de Markdown (- \[ \]) para que podamos llevar el seguimiento del avance. Asegúrate de incluir tareas para correr las pruebas de ArchUnitNET y validar el código.
 
 **Prompt para solicitar que implemente el requerimiento**  
-Implementa la funcionalidad de \[CASO DE USO. EJ. (alta de parque solar)\] siguiendo estrictamente las decisiones arquitectónicas de arnes/prompting/\[CARPETA DEL REQUERIMIENTO\]/specs.md. Ejecuta paso por paso el plan detallado en tasks.md de la misma carpeta que specs.md. A medida que completes cada subtarea, marca el checkbox correspondiente con una x (- \[x\]). No avances a nueva capa hasta que el código de la actual compile correctamente y pase nuestras reglas definidas en los test unitarios. 
+Implementa la funcionalidad de \[CASO DE USO. EJ. (alta de parque solar)\] siguiendo estrictamente las decisiones arquitectónicas de arnes/prompting/requerimientos/\[CARPETA DEL REQUERIMIENTO\]/specs.md. Ejecuta paso por paso el plan detallado en tasks.md de la misma carpeta que specs.md. A medida que completes cada subtarea, marca el checkbox correspondiente con una x (- \[x\]). No avances a nueva capa hasta que el código de la actual compile correctamente y pase nuestras reglas definidas en los test unitarios.
 
 <h2 align="center">Descripción Funcionalidades </h2>
 
