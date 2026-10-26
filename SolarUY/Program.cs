@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using SolarUY.Application.ParquesSolares;
 using SolarUY.Application.ParquesSolares.Servicios;
+using SolarUY.Application.Nodos;
+using SolarUY.Application.Nodos.Servicios;
 using SolarUY.Infrastructure.Persistencia;
 using SolarUY.Infrastructure.Seguridad;
 using System.Threading.RateLimiting;
@@ -36,6 +38,8 @@ builder.Services.AddDbContext<SolarUyDbContext>(options =>
     PersistenciaConfiguration.ConfigurarContexto(options, conexion));
 builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
 builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
+builder.Services.AddScoped<INodoRepository, NodoRepository>();
+builder.Services.AddScoped<INodoService, NodoService>();
 SeguridadConfiguration.AgregarAutenticacionExterna(builder.Services, builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
@@ -91,10 +95,9 @@ app.MapPost("/cuenta/autenticar", async (HttpContext context,
         return Results.BadRequest("El formulario venció. Volvé a iniciar sesión.");
     }
 
-    var datos = await context.Request.ReadFormAsync(context.RequestAborted);
     var propiedades = new AuthenticationProperties
     {
-        RedirectUri = RetornoLocal.Validar(datos["ReturnUrl"].ToString()),
+        RedirectUri = "/parques-solares",
         IsPersistent = false
     };
     try

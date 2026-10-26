@@ -17,6 +17,9 @@
         </AuthorizeView>
         <AuthorizeView>
             <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="parques-solares" Match="NavLinkMatch.All" data-enhance-nav="false">Parques solares</NavLink>
+                </div>
                 <div class="px-3 text-white" role="status">
                     <p>Sesión iniciada: @(context.User.Identity?.Name ?? "Usuario autenticado")</p>
                     <p>

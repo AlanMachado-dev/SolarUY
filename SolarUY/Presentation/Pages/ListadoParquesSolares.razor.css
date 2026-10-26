@@ -1,0 +1,21 @@
+.tabla-parques tbody tr {
+    position: relative;
+}
+
+/* El enlace nativo cubre también las celdas y los espacios de su fila en SSR. */
+.enlace-parque::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.tabla-parques tbody tr:hover > td,
+.tabla-parques tbody tr:focus-within > td {
+    background-color: #eef5ff;
+}
+
+.enlace-parque:focus-visible::after {
+    outline: 3px solid #005fcc;
+    outline-offset: -3px;
+}

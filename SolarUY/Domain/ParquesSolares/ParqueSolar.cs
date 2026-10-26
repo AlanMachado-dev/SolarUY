@@ -1,14 +1,27 @@
+using SolarUY.Domain.Nodos;
+
 namespace SolarUY.Domain.ParquesSolares;
 
 public sealed class ParqueSolar
 {
+    private readonly List<Nodo> _nodos = [];
+
     public Guid ID { get; private set; }
     public NombreParqueSolar Nombre { get; private set; } = null!;
     public string Ubicacion { get; private set; } = string.Empty;
-    // La suma de una topología vacía es cero; la topología se incorpora en otro requerimiento.
+    public IReadOnlyCollection<Nodo> Nodos => _nodos.AsReadOnly();
+    public IReadOnlyCollection<Guid> NodosIds => _nodos.Select(nodo => nodo.ID).ToList().AsReadOnly();
+    // Los nodos incorporados aún no tienen paneles que aporten capacidad.
     public decimal CapacidadTotalEstimadaMw => 0m;
 
     private ParqueSolar() { }
+
+    public Nodo AgregarNodo(string? nombre, float latitud, float longitud, Inversor? inversor)
+    {
+        var nodo = Nodo.Crear(nombre, latitud, longitud, this, inversor);
+        _nodos.Add(nodo);
+        return nodo;
+    }
 
     public static ParqueSolar Crear(string? nombre, string? ubicacion)
     {

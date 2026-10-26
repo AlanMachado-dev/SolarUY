@@ -2,27 +2,12 @@
 @namespace SolarUY.Presentation.Pages
 @attribute [Authorize(Roles = "Administrador")]
 @inject IParqueSolarService ParqueService
+@inject NavigationManager Navegacion
 @inject ILogger<AltaParqueSolar> Logger
 
 <PageTitle>Registrar parque solar - SolarUY</PageTitle>
 <h1>Registrar parque solar</h1>
 
-@if (_resultado?.EsExitoso == true)
-{
-    var parque = _resultado.Parque!;
-    <section aria-labelledby="confirmacion" role="status">
-        <h2 id="confirmacion">Parque solar registrado</h2>
-        <dl>
-            <dt>ID</dt><dd>@parque.ID</dd>
-            <dt>Nombre</dt><dd>@parque.Nombre</dd>
-            <dt>Ubicación</dt><dd>@parque.Ubicacion</dd>
-            <dt>Capacidad total estimada</dt><dd>@parque.CapacidadTotalEstimadaMw.ToString("0.##") MW</dd>
-        </dl>
-        <a class="btn btn-primary" href="/parques-solares/nuevo" data-enhance-nav="false">Registrar otro parque</a>
-    </section>
-}
-else
-{
     <p>La capacidad inicial es 0 MW. Se calculará al incorporar nodos y paneles.</p>
     <p>Los campos marcados con * son obligatorios.</p>
     @if (_errorGeneral is not null)
@@ -50,7 +35,6 @@ else
     {
         <a href="/cuenta/iniciar-sesion">Iniciar sesión</a>
     }
-}
 
 @code {
     [SupplyParameterFromForm(FormName = "alta-parque-solar")]
@@ -88,5 +72,8 @@ else
                 error.GetType().Name);
             _errorGeneral = "No se pudo registrar el parque solar. Intentá nuevamente.";
         }
+
+        if (_resultado?.EsExitoso == true)
+            Navegacion.NavigateTo($"/parques-solares/{_resultado.Parque!.ID:D}?creado=true");
     }
 }

@@ -17,6 +17,9 @@ public sealed class ParqueSolarConfiguration : IEntityTypeConfiguration<ParqueSo
             .HasColumnType("char").HasMaxLength(36).IsFixedLength().ValueGeneratedNever();
         builder.Property(parque => parque.Ubicacion).HasColumnType("longtext").IsRequired();
         builder.Ignore(parque => parque.CapacidadTotalEstimadaMw);
+        builder.Ignore(parque => parque.NodosIds);
+        builder.Navigation(parque => parque.Nodos).HasField("_nodos")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.OwnsOne(parque => parque.Nombre, nombre =>
         {
             nombre.Property<Guid>("ParqueSolarID").HasConversion(

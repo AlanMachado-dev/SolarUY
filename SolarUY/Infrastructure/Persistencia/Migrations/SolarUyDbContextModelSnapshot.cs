@@ -21,6 +21,109 @@ namespace SolarUY.Infrastructure.Persistencia.Migrations
 
             MySQLModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
 
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Inversor", b =>
+                {
+                    b.Property<string>("ID")
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<string>("IdNodo")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("NumeroSerie")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .UseCollation("utf8mb4_0900_bin");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("IdNodo")
+                        .IsUnique();
+
+                    b.HasIndex("NumeroSerie")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Inversores_NumeroSerie");
+
+                    b.ToTable("Inversores", (string)null);
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Nodo", b =>
+                {
+                    b.Property<string>("ID")
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<string>("IdParque")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<float>("Latitud")
+                        .HasColumnType("float");
+
+                    b.Property<float>("Longitud")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("IdParque");
+
+                    b.ToTable("Nodos", (string)null);
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Sensor", b =>
+                {
+                    b.Property<string>("ID")
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<string>("Endpoint")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("IdInversor")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("NumeroSerie")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .UseCollation("utf8mb4_0900_bin");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("IdInversor")
+                        .IsUnique();
+
+                    b.HasIndex("NumeroSerie")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Sensores_NumeroSerie");
+
+                    b.ToTable("Sensores", (string)null);
+                });
+
             modelBuilder.Entity("SolarUY.Domain.ParquesSolares.ParqueSolar", b =>
                 {
                     b.Property<string>("ID")
@@ -35,6 +138,39 @@ namespace SolarUY.Infrastructure.Persistencia.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("ParquesSolares", (string)null);
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Inversor", b =>
+                {
+                    b.HasOne("SolarUY.Domain.Nodos.Nodo", "Nodo")
+                        .WithOne("Inversor")
+                        .HasForeignKey("SolarUY.Domain.Nodos.Inversor", "IdNodo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Nodo");
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Nodo", b =>
+                {
+                    b.HasOne("SolarUY.Domain.ParquesSolares.ParqueSolar", "Parque")
+                        .WithMany("Nodos")
+                        .HasForeignKey("IdParque")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Parque");
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Sensor", b =>
+                {
+                    b.HasOne("SolarUY.Domain.Nodos.Inversor", "Inversor")
+                        .WithOne("Sensor")
+                        .HasForeignKey("SolarUY.Domain.Nodos.Sensor", "IdInversor")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inversor");
                 });
 
             modelBuilder.Entity("SolarUY.Domain.ParquesSolares.ParqueSolar", b =>
@@ -73,6 +209,23 @@ namespace SolarUY.Infrastructure.Persistencia.Migrations
 
                     b.Navigation("Nombre")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Inversor", b =>
+                {
+                    b.Navigation("Sensor")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Nodos.Nodo", b =>
+                {
+                    b.Navigation("Inversor")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.ParquesSolares.ParqueSolar", b =>
+                {
+                    b.Navigation("Nodos");
                 });
 #pragma warning restore 612, 618
         }

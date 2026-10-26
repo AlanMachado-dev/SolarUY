@@ -10,6 +10,8 @@ public enum ResultadoGuardadoParqueSolar
 
 public interface IParqueSolarRepository
 {
+    Task<IReadOnlyList<ParqueSolar>> ListarAsync(CancellationToken cancellationToken = default);
+    Task<ParqueSolar?> ObtenerPorIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> ExisteNombreAsync(string claveNombre, CancellationToken cancellationToken = default);
     Task<ResultadoGuardadoParqueSolar> GuardarAsync(ParqueSolar parque,
         CancellationToken cancellationToken = default);

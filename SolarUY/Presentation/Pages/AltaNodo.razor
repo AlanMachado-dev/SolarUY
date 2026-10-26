@@ -1,0 +1,210 @@
+@page "/parques-solares/{ParqueId:guid}/nodos/nuevo"
+@namespace SolarUY.Presentation.Pages
+@attribute [Authorize(Roles = "Administrador")]
+@using System.Globalization
+@using SolarUY.Application.Nodos
+@inject INodoService NodoService
+@inject IParqueSolarService ParqueService
+@inject NavigationManager Navegacion
+@inject ILogger<AltaNodo> Logger
+
+<PageTitle>Registrar nodo - SolarUY</PageTitle>
+<h1>Registrar nodo</h1>
+
+@if (_resultado?.EsExitoso == true && _resultado.Nodo is { } nodo)
+{
+    <section role="status" aria-labelledby="confirmacion-nodo">
+        <h2 id="confirmacion-nodo">Nodo registrado</h2>
+        <h3>Nodo</h3>
+        <dl>
+            <dt>ID</dt><dd>@nodo.ID</dd>
+            <dt>Parque</dt><dd>@_parque?.Nombre (@nodo.ParqueId)</dd>
+            <dt>Nombre</dt><dd>@nodo.Nombre</dd>
+            <dt>Latitud</dt><dd>@nodo.Latitud.ToString(CultureInfo.CurrentCulture)</dd>
+            <dt>Longitud</dt><dd>@nodo.Longitud.ToString(CultureInfo.CurrentCulture)</dd>
+            <dt>Cantidad de paneles</dt><dd>@nodo.CantidadPaneles</dd>
+        </dl>
+        <h3>Inversor</h3>
+        <dl>
+            <dt>ID</dt><dd>@nodo.Inversor.ID</dd>
+            <dt>Nombre</dt><dd>@nodo.Inversor.Nombre</dd>
+            <dt>Número de serie</dt><dd>@nodo.Inversor.NumeroSerie</dd>
+        </dl>
+        <h3>Sensor</h3>
+        <dl>
+            <dt>ID</dt><dd>@nodo.Inversor.Sensor.ID</dd>
+            <dt>Nombre</dt><dd>@nodo.Inversor.Sensor.Nombre</dd>
+            <dt>Número de serie</dt><dd>@nodo.Inversor.Sensor.NumeroSerie</dd>
+            <dt>Endpoint</dt><dd>@(nodo.Inversor.Sensor.Endpoint ?? "Sin endpoint")</dd>
+        </dl>
+    </section>
+    <a class="btn btn-primary" href="@DetalleUrl" data-enhance-nav="false">Volver al detalle del parque</a>
+}
+else if (_noEncontrado)
+{
+    <p role="status">No se encontró el parque solar</p>
+    <a href="/parques-solares" data-enhance-nav="false">Volver al listado</a>
+}
+else
+{
+    @if (_errorGeneral is not null)
+    {
+        <div class="alert alert-danger" role="alert">@_errorGeneral</div>
+    }
+    @if (_parque is { } parque)
+    {
+        <p>Parque de destino: <strong>@parque.Nombre</strong> (@parque.ID)</p>
+        <p>Los campos marcados con * son obligatorios.</p>
+        <EditForm EditContext="_editContext" FormName="alta-nodo" OnSubmit="RegistrarAsync">
+            <ValidationSummary />
+            <fieldset class="mb-4">
+                <legend>Nodo</legend>
+                <div class="mb-3">
+                    <label for="nombre-nodo" class="form-label">Nombre del nodo *</label>
+                    <InputText id="nombre-nodo" class="form-control" @bind-Value="Modelo!.Nombre"
+                               required aria-required="true" aria-describedby="nombre-nodo-error" />
+                    <div id="nombre-nodo-error"><ValidationMessage For="() => Modelo!.Nombre" /></div>
+                </div>
+                <div class="mb-3">
+                    <label for="latitud" class="form-label">Latitud *</label>
+                    <InputNumber id="latitud" class="form-control" @bind-Value="Modelo!.Latitud" step="any"
+                                 ParsingErrorMessage="La latitud debe ser un número." required aria-required="true" aria-describedby="latitud-error" />
+                    <div id="latitud-error"><ValidationMessage For="() => Modelo!.Latitud" /></div>
+                </div>
+                <div class="mb-3">
+                    <label for="longitud" class="form-label">Longitud *</label>
+                    <InputNumber id="longitud" class="form-control" @bind-Value="Modelo!.Longitud" step="any"
+                                 ParsingErrorMessage="La longitud debe ser un número." required aria-required="true" aria-describedby="longitud-error" />
+                    <div id="longitud-error"><ValidationMessage For="() => Modelo!.Longitud" /></div>
+                </div>
+            </fieldset>
+            <fieldset class="mb-4">
+                <legend>Inversor</legend>
+                <div class="mb-3">
+                    <label for="nombre-inversor" class="form-label">Nombre del inversor *</label>
+                    <InputText id="nombre-inversor" class="form-control" @bind-Value="Modelo!.NombreInversor"
+                               required aria-required="true" aria-describedby="nombre-inversor-error" />
+                    <div id="nombre-inversor-error"><ValidationMessage For="() => Modelo!.NombreInversor" /></div>
+                </div>
+                <div class="mb-3">
+                    <label for="serie-inversor" class="form-label">Número de serie del inversor *</label>
+                    <InputText id="serie-inversor" class="form-control" @bind-Value="Modelo!.NumeroSerieInversor"
+                               required aria-required="true" aria-describedby="serie-inversor-error" />
+                    <div id="serie-inversor-error"><ValidationMessage For="() => Modelo!.NumeroSerieInversor" /></div>
+                </div>
+            </fieldset>
+            <fieldset class="mb-4">
+                <legend>Sensor</legend>
+                <div class="mb-3">
+                    <label for="nombre-sensor" class="form-label">Nombre del sensor *</label>
+                    <InputText id="nombre-sensor" class="form-control" @bind-Value="Modelo!.NombreSensor"
+                               required aria-required="true" aria-describedby="nombre-sensor-error" />
+                    <div id="nombre-sensor-error"><ValidationMessage For="() => Modelo!.NombreSensor" /></div>
+                </div>
+                <div class="mb-3">
+                    <label for="serie-sensor" class="form-label">Número de serie del sensor *</label>
+                    <InputText id="serie-sensor" class="form-control" @bind-Value="Modelo!.NumeroSerieSensor"
+                               required aria-required="true" aria-describedby="serie-sensor-error" />
+                    <div id="serie-sensor-error"><ValidationMessage For="() => Modelo!.NumeroSerieSensor" /></div>
+                </div>
+                <div class="mb-3">
+                    <label for="endpoint-sensor" class="form-label">Endpoint (opcional)</label>
+                    <InputText id="endpoint-sensor" class="form-control" @bind-Value="Modelo!.EndpointSensor" aria-describedby="endpoint-sensor-error" />
+                    <div id="endpoint-sensor-error"><ValidationMessage For="() => Modelo!.EndpointSensor" /></div>
+                </div>
+            </fieldset>
+            <button type="submit" class="btn btn-primary">Registrar nodo</button>
+            <a class="btn btn-secondary" href="@DetalleUrl" data-enhance-nav="false">Cancelar</a>
+        </EditForm>
+    }
+    else
+    {
+        <a href="@DetalleUrl" data-enhance-nav="false">Volver al detalle del parque</a>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid ParqueId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "alta-nodo")]
+    private CrearNodoDto? Modelo { get; set; }
+
+    private EditContext _editContext = null!;
+    private ValidationMessageStore _mensajes = null!;
+    private ParqueSolarDto? _parque;
+    private ResultadoAltaNodoDto? _resultado;
+    private bool _noEncontrado;
+    private string? _errorGeneral;
+    private string DetalleUrl => $"/parques-solares/{ParqueId:D}";
+
+    protected override void OnInitialized()
+    {
+        Modelo ??= new CrearNodoDto();
+        _editContext = new EditContext(Modelo);
+        _mensajes = new ValidationMessageStore(_editContext);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var detalle = await ParqueService.ObtenerPorIdAsync(ParqueId);
+            if (detalle.Codigo == CodigoConsultaParqueSolar.AutenticacionRequerida)
+            {
+                Navegacion.NavigateTo("/cuenta/iniciar-sesion", forceLoad: true);
+                return;
+            }
+            _parque = detalle.Parque;
+            _noEncontrado = detalle.Codigo == CodigoConsultaParqueSolar.NoEncontrado;
+        }
+        catch (Exception)
+        {
+            MostrarFalloTecnico();
+        }
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _mensajes.Clear();
+        _errorGeneral = null;
+        if (!_editContext.Validate()) return;
+
+        try
+        {
+            _resultado = await NodoService.CrearAsync(ParqueId, Modelo!);
+            foreach (var error in _resultado.Errores)
+            {
+                switch (error.Codigo)
+                {
+                    case CodigoErrorAltaNodo.AutenticacionRequerida:
+                        Navegacion.NavigateTo("/cuenta/iniciar-sesion", forceLoad: true);
+                        return;
+                    case CodigoErrorAltaNodo.AccesoDenegado:
+                        Navegacion.NavigateTo("/cuenta/acceso-denegado", forceLoad: true);
+                        return;
+                    case CodigoErrorAltaNodo.ParqueNoEncontrado:
+                        _parque = null;
+                        _noEncontrado = true;
+                        break;
+                    case CodigoErrorAltaNodo.NumeroSerieInversorDuplicado:
+                    case CodigoErrorAltaNodo.NumeroSerieSensorDuplicado:
+                    default:
+                        _mensajes.Add(new FieldIdentifier(Modelo!, error.Campo ?? string.Empty), error.Mensaje);
+                        break;
+                }
+            }
+            _editContext.NotifyValidationStateChanged();
+        }
+        catch (Exception)
+        {
+            MostrarFalloTecnico();
+        }
+    }
+
+    private void MostrarFalloTecnico()
+    {
+        Logger.LogWarning("No se pudo registrar el nodo. Código: alta_nodo.");
+        _errorGeneral = "No se pudo registrar el nodo. Intentá nuevamente.";
+    }
+}

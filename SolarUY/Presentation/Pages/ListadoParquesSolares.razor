@@ -1,0 +1,77 @@
+@page "/parques-solares"
+@namespace SolarUY.Presentation.Pages
+@attribute [Authorize]
+@using System.Globalization
+@inject IParqueSolarService ParqueService
+@inject NavigationManager Navegacion
+@inject ILogger<ListadoParquesSolares> Logger
+
+<PageTitle>Parques solares - SolarUY</PageTitle>
+<h1>Parques solares</h1>
+
+@if (_errorCarga)
+{
+    <div class="alert alert-danger" role="alert">No se pudo cargar la información. Intentá nuevamente</div>
+    <a class="btn btn-primary" href="/parques-solares" data-enhance-nav="false">Recargar</a>
+}
+else if (_resultado?.Codigo == CodigoConsultaParqueSolar.Exitoso)
+{
+    @if (_resultado.Parques.Count == 0)
+    {
+        <p role="status">No hay parques solares registrados</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table tabla-parques">
+                <caption class="visually-hidden">Parques solares registrados. Seleccioná un parque para ver sus detalles.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Ubicación (localidad / dirección)</th>
+                        <th scope="col">Capacidad total estimada (MW)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var parque in _resultado.Parques)
+                    {
+                        <tr @key="parque.ID">
+                            <td>@parque.ID</td>
+                            <td>
+                                <a class="enlace-parque" href="@($"/parques-solares/{parque.ID:D}")"
+                                   aria-label="@($"Ver detalles de {parque.Nombre}")" data-enhance-nav="false">@parque.Nombre</a>
+                            </td>
+                            <td>@parque.Ubicacion</td>
+                            <td>@parque.CapacidadTotalEstimadaMw.ToString("0.##", CultureInfo.CurrentCulture) MW</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private ResultadoListadoParquesSolaresDto? _resultado;
+    private bool _errorCarga;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _resultado = await ParqueService.ListarAsync();
+        }
+        catch (Exception)
+        {
+            Logger.LogWarning("No se pudo cargar el listado de parques solares. Código: consulta_listado.");
+            _errorCarga = true;
+        }
+
+        if (_resultado?.Codigo == CodigoConsultaParqueSolar.AutenticacionRequerida)
+        {
+            _resultado = null;
+            Navegacion.NavigateTo("/cuenta/iniciar-sesion", forceLoad: true);
+        }
+    }
+}
