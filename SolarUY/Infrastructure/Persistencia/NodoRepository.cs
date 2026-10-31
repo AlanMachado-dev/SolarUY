@@ -14,6 +14,13 @@ public sealed class NodoRepository : INodoRepository
         _context = context;
     }
 
+    public Task<Nodo?> ObtenerPorIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _context.Nodos.AsNoTracking()
+            .Include(nodo => nodo.Paneles)
+            .Include(nodo => nodo.Parque)
+            .Include(nodo => nodo.Inversor).ThenInclude(inversor => inversor.Sensor)
+            .SingleOrDefaultAsync(nodo => nodo.ID == id, cancellationToken);
+
     public Task<bool> ExisteNumeroSerieInversorAsync(string numeroSerie,
         CancellationToken cancellationToken = default) =>
         _context.Inversores.AnyAsync(inversor => inversor.NumeroSerie == numeroSerie, cancellationToken);

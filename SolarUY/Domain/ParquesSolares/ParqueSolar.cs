@@ -11,8 +11,8 @@ public sealed class ParqueSolar
     public string Ubicacion { get; private set; } = string.Empty;
     public IReadOnlyCollection<Nodo> Nodos => _nodos.AsReadOnly();
     public IReadOnlyCollection<Guid> NodosIds => _nodos.Select(nodo => nodo.ID).ToList().AsReadOnly();
-    // Los nodos incorporados aún no tienen paneles que aporten capacidad.
-    public decimal CapacidadTotalEstimadaMw => 0m;
+    public decimal CapacidadTotalEstimadaMw => _nodos.SelectMany(nodo => nodo.Paneles)
+        .Sum(panel => (decimal)((double)panel.PotenciaNominalW / 1_000_000d));
 
     private ParqueSolar() { }
 

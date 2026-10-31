@@ -17,6 +17,7 @@ public sealed class ParqueSolarRepository : IParqueSolarRepository
     public async Task<IReadOnlyList<ParqueSolar>> ListarAsync(
         CancellationToken cancellationToken = default) =>
         await _context.ParquesSolares.AsNoTracking()
+            .Include(parque => parque.Nodos).ThenInclude(nodo => nodo.Paneles)
             .OrderBy(parque => parque.Nombre.Valor)
             .ThenBy(parque => parque.ID)
             .ToListAsync(cancellationToken);
@@ -24,6 +25,7 @@ public sealed class ParqueSolarRepository : IParqueSolarRepository
     public Task<ParqueSolar?> ObtenerPorIdAsync(Guid id,
         CancellationToken cancellationToken = default) =>
         _context.ParquesSolares.AsNoTracking()
+            .Include(parque => parque.Nodos).ThenInclude(nodo => nodo.Paneles)
             .Include(parque => parque.Nodos).ThenInclude(nodo => nodo.Inversor).ThenInclude(inversor => inversor.Sensor)
             .SingleOrDefaultAsync(parque => parque.ID == id, cancellationToken);
 

@@ -25,10 +25,9 @@ else if (_resultado?.Codigo == CodigoConsultaParqueSolar.Exitoso && _resultado.P
         <div class="alert alert-success" role="status">El parque solar se creó correctamente.</div>
     }
     <dl>
-        <dt>ID</dt><dd>@parque.ID</dd>
         <dt>Nombre</dt><dd>@parque.Nombre</dd>
         <dt>Ubicación (localidad / dirección)</dt><dd>@parque.Ubicacion</dd>
-        <dt>Capacidad total estimada</dt><dd>@parque.CapacidadTotalEstimadaMw.ToString("0.##", CultureInfo.CurrentCulture) MW</dd>
+        <dt>Capacidad total estimada</dt><dd>@parque.CapacidadTotalEstimadaMw.ToString("0.############################", CultureInfo.CurrentCulture) MW</dd>
     </dl>
     <AuthorizeView Roles="Administrador">
         <Authorized>
@@ -47,12 +46,19 @@ else if (_resultado?.Codigo == CodigoConsultaParqueSolar.Exitoso && _resultado.P
             {
                 <article class="card mb-3 nodo-detalle" aria-labelledby="@($"nodo-{nodo.ID:D}")">
                     <div class="card-body">
-                        <h3 class="card-title h4" id="@($"nodo-{nodo.ID:D}")">@nodo.Nombre</h3>
+                        <h3 class="card-title h4" id="@($"nodo-{nodo.ID:D}")">
+                            <AuthorizeView Roles="Administrador,Operador">
+                                <Authorized>
+                                    <a class="stretched-link enlace-nodo" href="@($"/nodos/{nodo.ID:D}")"
+                                       aria-label="@($"Ver detalles de {nodo.Nombre}")" data-enhance-nav="false">@nodo.Nombre</a>
+                                </Authorized>
+                                <NotAuthorized>@nodo.Nombre</NotAuthorized>
+                            </AuthorizeView>
+                        </h3>
                         <div class="row">
                             <div class="col-12 col-lg-4">
                                 <h4 class="h5">Nodo</h4>
                                 <dl>
-                                    <dt>ID</dt><dd>@nodo.ID</dd>
                                     <dt>Nombre</dt><dd>@nodo.Nombre</dd>
                                     <dt>Latitud</dt><dd>@nodo.Latitud.ToString(CultureInfo.CurrentCulture)</dd>
                                     <dt>Longitud</dt><dd>@nodo.Longitud.ToString(CultureInfo.CurrentCulture)</dd>
@@ -62,7 +68,6 @@ else if (_resultado?.Codigo == CodigoConsultaParqueSolar.Exitoso && _resultado.P
                             <div class="col-12 col-lg-4">
                                 <h4 class="h5">Inversor</h4>
                                 <dl>
-                                    <dt>ID</dt><dd>@nodo.Inversor.ID</dd>
                                     <dt>Nombre</dt><dd>@nodo.Inversor.Nombre</dd>
                                     <dt>Número de serie</dt><dd>@nodo.Inversor.NumeroSerie</dd>
                                 </dl>
@@ -70,7 +75,6 @@ else if (_resultado?.Codigo == CodigoConsultaParqueSolar.Exitoso && _resultado.P
                             <div class="col-12 col-lg-4">
                                 <h4 class="h5">Sensor</h4>
                                 <dl>
-                                    <dt>ID</dt><dd>@nodo.Inversor.Sensor.ID</dd>
                                     <dt>Nombre</dt><dd>@nodo.Inversor.Sensor.Nombre</dd>
                                     <dt>Número de serie</dt><dd>@nodo.Inversor.Sensor.NumeroSerie</dd>
                                     <dt>Endpoint</dt><dd>@(nodo.Inversor.Sensor.Endpoint ?? "Sin endpoint")</dd>

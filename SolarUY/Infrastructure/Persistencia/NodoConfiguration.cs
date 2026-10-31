@@ -16,6 +16,8 @@ public sealed class NodoConfiguration : IEntityTypeConfiguration<Nodo>
         builder.Property(nodo => nodo.Latitud).IsRequired();
         builder.Property(nodo => nodo.Longitud).IsRequired();
         builder.Ignore(nodo => nodo.CantidadPaneles);
+        builder.Navigation(nodo => nodo.Paneles).HasField("_paneles")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Property<Guid>("IdParque").HasConversion(id => id.ToString("D"), texto => Guid.Parse(texto))
             .HasColumnType("char").HasMaxLength(36).IsFixedLength();
         builder.HasOne(nodo => nodo.Parque).WithMany(parque => parque.Nodos)

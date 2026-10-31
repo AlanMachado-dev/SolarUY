@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SolarUY.Domain.ParquesSolares;
 using SolarUY.Domain.Nodos;
+using SolarUY.Domain.Paneles;
 using MySql.EntityFrameworkCore.Extensions;
 
 namespace SolarUY.Infrastructure.Persistencia;
@@ -13,6 +14,7 @@ public sealed class SolarUyDbContext : DbContext
     public DbSet<Nodo> Nodos => Set<Nodo>();
     public DbSet<Inversor> Inversores => Set<Inversor>();
     public DbSet<Sensor> Sensores => Set<Sensor>();
+    public DbSet<Panel> Paneles => Set<Panel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -21,5 +23,6 @@ public sealed class SolarUyDbContext : DbContext
         modelBuilder.ApplyConfiguration(new NodoConfiguration());
         modelBuilder.ApplyConfiguration(new InversorConfiguration());
         modelBuilder.ApplyConfiguration(new SensorConfiguration());
+        modelBuilder.ApplyConfiguration(new PanelConfiguration());
     }
 }

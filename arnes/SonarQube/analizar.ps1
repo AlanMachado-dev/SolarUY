@@ -5,7 +5,7 @@ param([string]$ProjectPath = $PWD.Path)
 # =========================================================================
 
 # 1. Pega aquí el Token que generaste en SonarQube
-$SONAR_TOKEN = "squ_92383340b15e91c9fec4fa22a169571b3c9c5efe"
+$SONAR_TOKEN = "squ_db595488af882624a7b84af6365c42a00689a20a"
 
 # 2. Inventa un nombre para tu proyecto (sin espacios) o usa el nombre de tu taller
 $PROJECT_KEY = "SolarUY"

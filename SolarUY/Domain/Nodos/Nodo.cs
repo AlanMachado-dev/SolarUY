@@ -1,19 +1,31 @@
 using SolarUY.Domain.ParquesSolares;
+using SolarUY.Domain.Paneles;
 
 namespace SolarUY.Domain.Nodos;
 
 public sealed class Nodo
 {
+    private readonly List<Panel> _paneles = [];
     public Guid ID { get; private set; }
     public string Nombre { get; private set; } = string.Empty;
     public float Latitud { get; private set; }
     public float Longitud { get; private set; }
     public ParqueSolar Parque { get; private set; } = null!;
     public Inversor Inversor { get; private set; } = null!;
-    // No hay paneles ni asociaciones de paneles en esta topología todavía.
-    public int CantidadPaneles => 0;
+    public IReadOnlyCollection<Panel> Paneles => _paneles.AsReadOnly();
+    public int CantidadPaneles => _paneles.Count;
 
     private Nodo() { }
+
+    public Panel AgregarPanel(string? nombre, string? modelo, float potenciaNominalW, DateTime instanteUtc)
+    {
+        var panel = Panel.Crear(nombre, modelo, potenciaNominalW, instanteUtc, this);
+        if (_paneles.Any(existente => existente.Nombre.Clave == panel.Nombre.Clave))
+            throw new DatosPanelInvalidosException("Nombre",
+                "Ya existe un panel solar con ese nombre en este nodo.", esNombreDuplicado: true);
+        _paneles.Add(panel);
+        return panel;
+    }
 
     public static Nodo Crear(string? nombre, float latitud, float longitud,
         ParqueSolar? parque, Inversor? inversor)

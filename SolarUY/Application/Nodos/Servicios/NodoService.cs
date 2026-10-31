@@ -1,4 +1,5 @@
 using SolarUY.Application.ParquesSolares;
+using SolarUY.Application.Paneles;
 using SolarUY.Domain.Nodos;
 
 namespace SolarUY.Application.Nodos.Servicios;
@@ -15,6 +16,26 @@ public sealed class NodoService : INodoService
         _nodoRepository = nodoRepository;
         _parqueRepository = parqueRepository;
         _usuarioActual = usuarioActual;
+    }
+
+    public async Task<ResultadoDetalleNodoDto> ObtenerPorIdAsync(Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_usuarioActual.EstaAutenticado)
+            return new(CodigoConsultaNodo.AutenticacionRequerida, null);
+        if (!_usuarioActual.PerteneceAlRol("Administrador") && !_usuarioActual.PerteneceAlRol("Operador"))
+            return new(CodigoConsultaNodo.AccesoDenegado, null);
+        if (id == Guid.Empty)
+            return new(CodigoConsultaNodo.NoEncontrado, null);
+
+        var nodo = await _nodoRepository.ObtenerPorIdAsync(id, cancellationToken);
+        return nodo is null
+            ? new(CodigoConsultaNodo.NoEncontrado, null)
+            : new(CodigoConsultaNodo.Exitoso, Mapear(nodo))
+            {
+                Paneles = nodo.Paneles.OrderBy(panel => panel.Nombre.Valor).ThenBy(panel => panel.ID)
+                    .Select(PanelDto.Desde).ToArray()
+            };
     }
 
     public async Task<ResultadoAltaNodoDto> CrearAsync(Guid parqueId, CrearNodoDto datos,

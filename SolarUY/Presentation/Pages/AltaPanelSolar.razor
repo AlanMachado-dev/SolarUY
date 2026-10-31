@@ -1,0 +1,188 @@
+@page "/nodos/{NodoId:guid}/paneles/nuevo"
+@namespace SolarUY.Presentation.Pages
+@attribute [Authorize(Roles = "Administrador")]
+@using System.Globalization
+@using SolarUY.Application.Nodos
+@using SolarUY.Application.Paneles
+@inject INodoService NodoService
+@inject IPanelService PanelService
+@inject NavigationManager Navegacion
+@inject ILogger<AltaPanelSolar> Logger
+
+<PageTitle>Registrar panel solar - SolarUY</PageTitle>
+<h1>Registrar panel solar</h1>
+
+<div class="alta-panel">
+    @if (_noEncontrado)
+    {
+        <p role="status">No se encontró el nodo</p>
+        <a href="/parques-solares" data-enhance-nav="false">Volver al listado</a>
+    }
+    else
+    {
+        @if (_errorGeneral is not null)
+        {
+            <div class="alert alert-danger" role="alert">@_errorGeneral</div>
+        }
+        @if (_nodo is { } nodo)
+        {
+            <p>Nodo de destino: <strong>@nodo.Nombre</strong></p>
+            <p>Los campos marcados con * son obligatorios.</p>
+            <EditForm EditContext="_editContext" FormName="alta-panel" OnSubmit="RegistrarAsync">
+                <ValidationSummary />
+                <div class="mb-3">
+                    <label for="nombre-panel" class="form-label">Nombre *</label>
+                    <InputText id="nombre-panel" class="form-control" @bind-Value="Formulario!.Nombre"
+                               required aria-required="true" aria-describedby="nombre-panel-error" />
+                    <div id="nombre-panel-error" aria-live="polite"><ValidationMessage For="() => Formulario!.Nombre" /></div>
+                </div>
+                <div class="mb-3">
+                    <label for="modelo-panel" class="form-label">Modelo *</label>
+                    <InputText id="modelo-panel" class="form-control" @bind-Value="Formulario!.Modelo"
+                               required aria-required="true" aria-describedby="modelo-panel-error" />
+                    <div id="modelo-panel-error" aria-live="polite"><ValidationMessage For="() => Formulario!.Modelo" /></div>
+                </div>
+                <div class="mb-3">
+                    <label for="potencia-panel" class="form-label">Potencia nominal (W) *</label>
+                    <InputText id="potencia-panel" class="form-control" @bind-Value="Formulario!.PotenciaNominalW"
+                               inputmode="decimal" required aria-required="true" aria-describedby="potencia-panel-error" />
+                    <div id="potencia-panel-error" aria-live="polite"><ValidationMessage For="() => Formulario!.PotenciaNominalW" /></div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary">Registrar panel solar</button>
+                    <a class="btn btn-secondary" href="@DetalleUrl" data-enhance-nav="false">Cancelar</a>
+                </div>
+            </EditForm>
+        }
+        else if (_errorGeneral is not null)
+        {
+            <a class="btn btn-primary" href="@AltaUrl" data-enhance-nav="false">Reintentar</a>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid NodoId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "alta-panel")]
+    private EntradaPanel? Formulario { get; set; }
+
+    // Solo texto del formulario; la conversión cultural pertenece a Presentation.
+    public sealed class EntradaPanel
+    {
+        public string? Nombre { get; set; }
+        public string? Modelo { get; set; }
+        public string? PotenciaNominalW { get; set; }
+    }
+
+    private EditContext _editContext = null!;
+    private ValidationMessageStore _mensajes = null!;
+    private NodoDto? _nodo;
+    private Guid? _nodoCargado;
+    private bool _noEncontrado;
+    private string? _errorGeneral;
+    private string DetalleUrl => $"/nodos/{NodoId:D}";
+    private string AltaUrl => $"{DetalleUrl}/paneles/nuevo";
+
+    protected override void OnInitialized() => PrepararFormulario();
+
+    private void PrepararFormulario()
+    {
+        Formulario ??= new EntradaPanel();
+        _editContext = new EditContext(Formulario);
+        _mensajes = new ValidationMessageStore(_editContext);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_nodoCargado is not null && _nodoCargado != NodoId)
+        {
+            Formulario = new EntradaPanel();
+            PrepararFormulario();
+        }
+        _nodoCargado = NodoId;
+        _nodo = null;
+        _noEncontrado = false;
+        _errorGeneral = null;
+        ResultadoDetalleNodoDto detalle;
+        try
+        {
+            detalle = await NodoService.ObtenerPorIdAsync(NodoId);
+        }
+        catch (Exception)
+        {
+            Logger.LogWarning("Código: carga_alta_panel.");
+            _errorGeneral = "No se pudo cargar la información. Intentá nuevamente.";
+            return;
+        }
+        if (detalle.Codigo == CodigoConsultaNodo.AutenticacionRequerida)
+            Navegacion.NavigateTo("/cuenta/iniciar-sesion", forceLoad: true);
+        else if (detalle.Codigo == CodigoConsultaNodo.AccesoDenegado)
+            Navegacion.NavigateTo("/cuenta/acceso-denegado", forceLoad: true);
+        else
+        {
+            _nodo = detalle.Nodo;
+            _noEncontrado = detalle.Codigo == CodigoConsultaNodo.NoEncontrado;
+        }
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _mensajes.Clear();
+        _errorGeneral = null;
+        if (_nodo is null || !_editContext.Validate()) return;
+
+        float? potencia = null;
+        if (!string.IsNullOrWhiteSpace(Formulario!.PotenciaNominalW))
+        {
+            if (!float.TryParse(Formulario.PotenciaNominalW, NumberStyles.Float, CultureInfo.CurrentCulture, out var valor))
+            {
+                _mensajes.Add(new FieldIdentifier(Formulario, nameof(Formulario.PotenciaNominalW)), "La potencia nominal debe ser un número.");
+                _editContext.NotifyValidationStateChanged();
+                return;
+            }
+            potencia = valor;
+        }
+
+        ResultadoAltaPanelDto resultado;
+        try
+        {
+            resultado = await PanelService.CrearAsync(NodoId, new CrearPanelDto
+            { Nombre = Formulario.Nombre, Modelo = Formulario.Modelo, PotenciaNominalW = potencia });
+        }
+        catch (Exception)
+        {
+            Logger.LogWarning("Código: alta_panel.");
+            _errorGeneral = "No se pudo registrar el panel solar. Intentá nuevamente.";
+            return;
+        }
+        if (resultado.EsExitoso)
+        {
+            Navegacion.NavigateTo(DetalleUrl + "?panelRegistrado=true", forceLoad: true);
+            return;
+        }
+        foreach (var error in resultado.Errores)
+        {
+            switch (error.Codigo)
+            {
+                case CodigoErrorAltaPanel.AutenticacionRequerida:
+                    _nodo = null;
+                    Navegacion.NavigateTo("/cuenta/iniciar-sesion", forceLoad: true);
+                    return;
+                case CodigoErrorAltaPanel.AccesoDenegado:
+                    _nodo = null;
+                    Navegacion.NavigateTo("/cuenta/acceso-denegado", forceLoad: true);
+                    return;
+                case CodigoErrorAltaPanel.NodoNoEncontrado:
+                    _nodo = null;
+                    _noEncontrado = true;
+                    return;
+                default:
+                    _mensajes.Add(new FieldIdentifier(Formulario, error.Campo ?? string.Empty), error.Mensaje);
+                    break;
+            }
+        }
+        _editContext.NotifyValidationStateChanged();
+    }
+}

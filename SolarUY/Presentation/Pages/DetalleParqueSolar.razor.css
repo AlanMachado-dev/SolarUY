@@ -1,3 +1,14 @@
 .nodo-detalle {
+    position: relative;
     overflow-wrap: anywhere;
+}
+
+.enlace-nodo:focus-visible {
+    outline: none;
+}
+
+.enlace-nodo:focus-visible::after {
+    outline: 3px solid #0a58ca;
+    outline-offset: 3px;
+    border-radius: var(--bs-card-border-radius, 0.375rem);
 }
