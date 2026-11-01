@@ -72,3 +72,6 @@ nunit-*.xml
 # Caché del arnés Python
 __pycache__/
 *.pyc
+
+# Token privado del analizador SonarQube
+/arnes/SonarQube/sonar-token.txt

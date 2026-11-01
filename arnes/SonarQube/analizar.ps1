@@ -4,8 +4,7 @@ param([string]$ProjectPath = $PWD.Path)
 # CONFIGURACIÓN DEL PROYECTO
 # =========================================================================
 
-# 1. Pega aquí el Token que generaste en SonarQube
-$SONAR_TOKEN = "squ_db595488af882624a7b84af6365c42a00689a20a"
+# El token se lee de sonar-token.txt, junto a este script; no se guarda en código.
 
 # 2. Inventa un nombre para tu proyecto (sin espacios) o usa el nombre de tu taller
 $PROJECT_KEY = "SolarUY"
@@ -26,8 +25,20 @@ try {
     exit 1
 }
 
-if ($SONAR_TOKEN -eq "pega_tu_token_aqui") {
-    Write-Host "ERROR: Debes modificar el archivo analizar.ps1 y poner tu SONAR_TOKEN." -ForegroundColor Red
+$TokenFile = Join-Path $PSScriptRoot 'sonar-token.txt'
+if (-not (Test-Path -LiteralPath $TokenFile -PathType Leaf)) {
+    Write-Host "ERROR: Falta sonar-token.txt junto al script. Copiá sonar-token.example.txt y completá tu token." -ForegroundColor Red
+    exit 1
+}
+try {
+    $SONAR_TOKEN = [string](Get-Content -LiteralPath $TokenFile -Raw -Encoding UTF8 -ErrorAction Stop)
+    $SONAR_TOKEN = $SONAR_TOKEN.Trim()
+} catch {
+    Write-Host "ERROR: No se pudo leer sonar-token.txt. Revisá que sea un archivo de texto UTF-8 accesible." -ForegroundColor Red
+    exit 1
+}
+if ([string]::IsNullOrWhiteSpace($SONAR_TOKEN) -or $SONAR_TOKEN -eq 'pega_tu_token_aqui' -or $SONAR_TOKEN -match '\s') {
+    Write-Host "ERROR: sonar-token.txt debe contener solo tu token en una línea, sin el marcador de ejemplo." -ForegroundColor Red
     exit 1
 }
 
@@ -58,10 +69,18 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Iniciando contenedor analizador para $PROJECT_KEY..." -ForegroundColor Cyan
 Write-Host "Directorio a analizar: $ABS_PATH" -ForegroundColor Cyan
 
-docker run --rm --network host `
-  -v "${ABS_PATH}:/app" `
-  -e SONAR_HOST_URL="http://localhost:9000" `
-  -e SONAR_TOKEN=$SONAR_TOKEN `
-  -e PROJECT_KEY=$PROJECT_KEY `
-  $IMAGE_NAME
-exit $LASTEXITCODE
+# Docker hereda el valor desde el entorno del proceso; el token no va en sus argumentos.
+$PreviousSonarToken = [Environment]::GetEnvironmentVariable('SONAR_TOKEN', 'Process')
+try {
+    [Environment]::SetEnvironmentVariable('SONAR_TOKEN', $SONAR_TOKEN, 'Process')
+    docker run --rm --network host `
+      -v "${ABS_PATH}:/app" `
+      -e SONAR_HOST_URL="http://localhost:9000" `
+      -e SONAR_TOKEN `
+      -e PROJECT_KEY=$PROJECT_KEY `
+      $IMAGE_NAME
+    $ScannerExitCode = $LASTEXITCODE
+} finally {
+    [Environment]::SetEnvironmentVariable('SONAR_TOKEN', $PreviousSonarToken, 'Process')
+}
+exit $ScannerExitCode

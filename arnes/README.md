@@ -17,7 +17,7 @@ Para reutilizar este material en otro proyecto, adaptar AGENTS.md, las reglas y 
 
 ## SonarQube
 
-[SonarQube](SonarQube) contiene la configuración para levantar el analizador. Complementa la revisión con detección de duplicación, errores, vulnerabilidades y problemas de mantenibilidad.
+[SonarQube](SonarQube) contiene la configuración para levantar el analizador. Sus scripts leen el token del archivo local sonar-token.txt, excluido de Git; seguir la [guía de configuración y análisis](SonarQube/README.md). Complementa la revisión con detección de duplicación, errores, vulnerabilidades y problemas de mantenibilidad.
 
 ## Pruebas de arquitectura
 

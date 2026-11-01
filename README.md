@@ -61,6 +61,47 @@ Para detener el proyecto, presionar `Ctrl+C` en la terminal. La configuración y
 
 La [guía de acceso externo](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md) incluye Auth0, roles, configuración privada y diagnóstico. La [guía MySQL](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md) conserva la preparación del esquema. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).
 
+## Documentación del proyecto
+
+Accesos directos a las guías, los documentos de cada requerimiento y modificación, y las instrucciones de desarrollo. Al agregar documentación nueva, actualizar este índice.
+
+### Guías de configuración y herramientas
+
+- [Acceso externo con Auth0: configuración, roles, inicio y cierre de sesión](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md).
+- [MySQL: configuración de conexión y arranque](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md).
+- [MySQL: referencia técnica, permisos y aceptación](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).
+- [OpenID Connect: resultados de aceptación y verificaciones pendientes](arnes/prompting/requerimientos/req002_implementacion_openID/aceptacion.md).
+- [Arnés y herramientas de control de calidad](arnes/README.md).
+- [SonarQube: preparación del entorno, token en archivo local y análisis](arnes/SonarQube/README.md).
+- [Índice de prompting y equivalencias entre nombres actuales e históricos](arnes/prompting/README.md).
+- [Configuración original del alta de parques — histórica, con SQLite y acceso local](arnes/prompting/requerimientos/req001_alta_parque_solar/configuracion.md).
+
+### Guías de pruebas funcionales
+
+- [req003 — listado de parques solares](arnes/prompting/tests/req003/README.md).
+- [req004 — alta de nodo](arnes/prompting/tests/req004/README.md).
+- [req005 — detalle de nodo](arnes/prompting/tests/req005/README.md).
+- [req006 — alta de panel solar](arnes/prompting/tests/req006/README.md).
+- [mod002 — cambios variados](arnes/prompting/tests/mod002/README.md).
+- [mod003 — presentación sin identificadores](arnes/prompting/tests/mod003/README.md).
+- [mod004 — seguridad del detalle de nodo](arnes/prompting/tests/mod004/README.md).
+
+Las comprobaciones de req001, req002 y mod001 se describen en sus guías de configuración, aceptación o referencia técnica enlazadas arriba.
+
+### Arquitectura y trabajo con IA
+
+- [Instrucciones generales del proyecto](AGENTS.md).
+- [Clean Architecture](.agents/rules/1_clean_architecture.md).
+- [Principios SOLID](.agents/rules/2_principios_solid.md).
+- [Convenciones de nomenclatura](.agents/rules/3_convenciones_nomenclatura.md).
+- [Modelado de dominio](.agents/rules/4_modelado_dominio.md).
+- [Reglas de presentación](.agents/rules/5_capa_presentacion.md).
+- [Protección de diagramas](.agents/rules/6_diagramas_de_SolarUY.md).
+- [Flujo de trabajo, pruebas y evidencias](.agents/rules/7_flujo_trabajo_ia.md).
+- [Skill para generar especificaciones](.agents/skills/sdd-generar-specs/SKILL.md) y [skill para generar tareas](.agents/skills/sdd-generar-tasks/SKILL.md).
+- [Diagrama de arquitectura](.agents/Images/Diagrama_de_Arquitectura_General.png) y [modelo de dominio](.agents/Images/Modelo_de_Dominio.png).
+- [Registro histórico de ajustes del arnés](arnes/prompting/ajustes_arnes_propuestos.md).
+
 <h2 align="center"> Decisiones Técnicas</h2>
 
 Decidimos usar una arquitectura modular, el cual consiste de la aplicación desplegada en una sola capa física (monolito) pero dividido en varios módulos distintos bien separados. 

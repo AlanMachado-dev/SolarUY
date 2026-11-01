@@ -25,51 +25,68 @@ Esta carpeta contiene la configuración necesaria para levantar un servidor de S
 Para que el analizador se comunique con el servidor, necesita un Token:
 1. En SonarQube, ve a **My Account** (arriba a la derecha, click en el icono de usuario) > **Security**.
 2. En **Generate Tokens**, ingresa un nombre (ej. `mi-token-local`), selecciona tipo `User Token`, y sin expiración (o a conveniencia).
-3. **Guarda muy bien este Token**, lo necesitarás para analizar tu código.
+3. Guardá el token en el archivo local **sonar-token.txt**, como se explica a continuación. No lo pegues en los scripts ni en la documentación.
 
 > **NOTA IMPORTANTE:** Al iniciar sesión, la pantalla de inicio de SonarQube te invitará a crear un proyecto ("Create a local project"). **No es necesario que lo hagas.** Puedes ignorar esa pantalla. Simplemente crea tu token como se indica arriba y sigue con el Paso 2; el script se encargará de crear tu proyecto en SonarQube de forma automática la primera vez que analice tu código.
 
 ---
 
-## 2. Cómo Analizar tu Código
+## 2. Cómo analizar tu código
 
-Ejecutar scripts (`analizar.sh` para Linux/Mac y `analizar.ps1` para Windows). 
+Los scripts [analizar.ps1](analizar.ps1) para Windows y [analizar.sh](analizar.sh) para Linux/Mac leen el mismo archivo **sonar-token.txt**, ubicado junto a ellos. La ubicación del archivo no depende de la carpeta desde la que ejecutes el análisis.
 
-1. Abre el script correspondiente a tu SO con tu editor de texto favorito (VS Code, Notepad, etc.).
-2. En las primeras líneas, verás dos variables. Rellénalas con tus datos:
-   ```bash
-   SONAR_TOKEN="pega_tu_token_aqui"
-   PROJECT_KEY="ElNombreQueLeDisteAlProyecto"
-   ```
-3. Guarda el archivo.
-4. Abre tu terminal y ejecuta el script pasándole la ruta de la carpeta de tu proyecto C# (donde está tu `.sln` o `.csproj`). Si no le pasas ruta, analizará la carpeta actual.
+### 2.1 Preparar el archivo privado
 
-   **En Linux/Mac:**
-   ```bash
-   chmod +x analizar.sh  # (Solo la primera vez para darle permisos)
-   
-   # Opción A: Pasando la ruta de tu proyecto
-   ./analizar.sh /ruta/hacia/tu/proyecto
-   
-   # Opción B: Estando dentro de la carpeta de tu proyecto
-   /ruta/hacia/sonar/analizar.sh
-   ```
+Desde la raíz del repositorio, crear el archivo a partir de [sonar-token.example.txt](sonar-token.example.txt), solo si todavía no existe:
 
-   **En Windows (PowerShell):**
-   ```powershell
-   # Si PowerShell bloquea los scripts, habilitarlos solo en esta ventana
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+**Windows (PowerShell):**
 
-   # Opción A: Pasando la ruta de tu proyecto
-   .\analizar.ps1 "C:\ruta\hacia\tu\proyecto"
-   
-   # Opción B: Estando dentro de la carpeta de tu proyecto
-   C:\ruta\hacia\sonar\analizar.ps1
-   ```
+~~~powershell
+if (-not (Test-Path arnes/SonarQube/sonar-token.txt)) {
+    Copy-Item arnes/SonarQube/sonar-token.example.txt arnes/SonarQube/sonar-token.txt
+}
+~~~
 
-5. El script construirá o actualizará automáticamente la imagen del escáner. Docker reutiliza las capas sin cambios; la primera ejecución puede tardar unos minutos.
-6. Luego, verás cómo arranca mágicamente el contenedor, compila tu código, y envía los resultados.
-7. Regresa a **http://localhost:9000** en tu navegador y actualiza la página. ¡Deberías ver tu proyecto analizado!
+**Linux/Mac (Bash):**
+
+~~~bash
+if [ ! -e arnes/SonarQube/sonar-token.txt ]; then
+    cp arnes/SonarQube/sonar-token.example.txt arnes/SonarQube/sonar-token.txt
+    chmod 600 arnes/SonarQube/sonar-token.txt
+fi
+~~~
+
+Abrí sonar-token.txt con tu editor y reemplazá el marcador por el token generado en SonarQube. Guardalo como texto UTF-8, con **solo el token en una línea**, sin comillas ni la asignación SONAR_TOKEN=. No compartas ese archivo. Si ya existe, conservarlo; para cambiar de token basta con editarlo.
+
+Retirar un token de los scripts no lo elimina de las versiones anteriores de Git. Como los tokens anteriores estaban versionados, renovarlos en SonarQube y guardar el reemplazo únicamente en sonar-token.txt.
+
+El archivo privado queda excluido de Git mediante la regla /arnes/SonarQube/sonar-token.txt. La plantilla contiene únicamente un marcador y sí se versiona. El punto de entrada del escáner excluye los archivos sonar-token.txt mediante sonar.exclusions; ver la [configuración oficial del escáner](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/dotnet/configuring).
+
+Los scripts rechazan un archivo ausente, ilegible, vacío, con el marcador de ejemplo o con varios valores separados por espacios o líneas. Muestran un error sin imprimir su contenido, antes de contactar SonarQube o iniciar Docker. No utilizan un token alternativo del entorno si el archivo falta.
+
+### 2.2 Ejecutar el análisis
+
+Ambos scripts usan PROJECT_KEY="SolarUY". Solo necesitás editar esa variable si querés analizar otro proyecto con una clave diferente. El token se mantiene siempre en el archivo privado.
+
+Desde la raíz del repositorio:
+
+**Windows (PowerShell):**
+
+~~~powershell
+.\arnes\SonarQube\analizar.ps1 .
+~~~
+
+**Linux/Mac (Bash):**
+
+~~~bash
+bash arnes/SonarQube/analizar.sh .
+~~~
+
+También podés pasar como argumento la ruta de otro proyecto, entre comillas si tiene espacios. Si omitís el argumento, se analiza la carpeta actual. El archivo sonar-token.txt se busca siempre junto al script, no en la carpeta del proyecto que se analiza.
+
+El script configura el Quality Gate, construye o actualiza la imagen del escáner y ejecuta el análisis. Docker reutiliza las capas sin cambios. El token se entrega al contenedor por una variable de entorno y no se copia a la imagen ni se muestra en los mensajes del script.
+
+Al finalizar, revisar los resultados en **http://localhost:9000**. Un token rechazado o vencido debe reemplazarse en sonar-token.txt por otro generado en SonarQube; no modificar los scripts para renovarlo.
 
 ---
 

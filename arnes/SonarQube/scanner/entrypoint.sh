@@ -27,6 +27,7 @@ echo "========================================="
 dotnet sonarscanner begin \
   /k:"$PROJECT_KEY" \
   /d:sonar.host.url="$SONAR_HOST_URL" \
+  /d:sonar.exclusions="**/sonar-token.txt" \
   /d:sonar.login="$SONAR_TOKEN"
 
 # 2. Compilar el proyecto
