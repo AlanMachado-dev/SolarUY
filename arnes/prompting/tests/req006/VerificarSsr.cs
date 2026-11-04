@@ -58,6 +58,7 @@ internal static class VerificarSsr
         builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
         builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
         builder.Services.AddScoped<INodoRepository, NodoRepository>();
+        builder.Services.AddScoped<SolarUY.Application.Monitoreo.IMedicionRepository, MedicionRepositorySinLecturas>();
         builder.Services.AddScoped<INodoService, NodoService>();
         builder.Services.AddScoped<IPanelRepository, PanelRepository>();
         builder.Services.AddScoped<IPanelService, PanelService>();
@@ -196,7 +197,7 @@ internal static class VerificarSsr
                 && diagnosticos.Mensajes.All(m => !m.Contains("SELECT") && !m.Contains("INSERT") && !m.Contains("Exception")), "ssr-diagnosticos-depurados");
             using var datosScope = app.Services.CreateScope();
             var nodosDb = datosScope.ServiceProvider.GetRequiredService<SolarUyDbContext>();
-            var nodoService = new NodoService(new NodoRepository(nodosDb), new ParqueSolarRepository(nodosDb), Usuario("Administrador"));
+            var nodoService = new NodoService(new NodoRepository(nodosDb), new ParqueSolarRepository(nodosDb), Usuario("Administrador"), new MedicionRepositorySinLecturas());
             var serie = Guid.NewGuid().ToString("N");
             var nuevoNodo = await nodoService.CrearAsync(parqueId, new CrearNodoDto
             { Nombre = "Nodo vacío req006", Latitud = 0, Longitud = 0, NombreInversor = "Inversor vacío", NumeroSerieInversor = "I-" + serie,

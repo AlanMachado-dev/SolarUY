@@ -96,6 +96,7 @@ internal static class VerificarDetalleNodo
         builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
         builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
         builder.Services.AddScoped<INodoRepository, NodoRepository>();
+        builder.Services.AddScoped<SolarUY.Application.Monitoreo.IMedicionRepository, MedicionRepositorySinLecturas>();
         builder.Services.AddScoped<INodoService, NodoService>();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IUsuarioActualService, UsuarioActualService>();
@@ -237,7 +238,7 @@ internal static class VerificarDetalleNodo
         LecturaInterceptor lectura)
     {
         var acceso = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
-        var servicio = new NodoService(new NodoRepository(contexto), new ParqueSolarRepository(contexto), new UsuarioActualService(acceso));
+        var servicio = new NodoService(new NodoRepository(contexto), new ParqueSolarRepository(contexto), new UsuarioActualService(acceso), new MedicionRepositorySinLecturas());
         foreach (var rol in new string?[] { null, "Operador", "administrador" })
         {
             acceso.HttpContext.User = rol is null ? new(new ClaimsIdentity())

@@ -86,6 +86,7 @@ internal static class VerificarMod003
         builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
         builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
         builder.Services.AddScoped<INodoRepository, NodoRepository>();
+        builder.Services.AddScoped<SolarUY.Application.Monitoreo.IMedicionRepository, MedicionRepositorySinLecturas>();
         builder.Services.AddScoped<INodoService, NodoService>();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IUsuarioActualService, UsuarioActualService>();

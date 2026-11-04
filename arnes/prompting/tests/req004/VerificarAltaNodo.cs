@@ -96,9 +96,9 @@ internal static class VerificarAltaNodo
         var acceso = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
         var usuario = new UsuarioActualService(acceso);
         var nodos = new NodoRepository(contexto);
-        var servicio = new NodoService(nodos, parques, usuario);
+        var servicio = new NodoService(nodos, parques, usuario, new MedicionRepositorySinLecturas());
         var prohibido = new AccesoProhibidoRepository();
-        var servicioProhibido = new NodoService(prohibido, prohibido, usuario);
+        var servicioProhibido = new NodoService(prohibido, prohibido, usuario, new MedicionRepositorySinLecturas());
         foreach (var rol in new string?[] { null, "Operador", "", "administrador" })
         {
             Identificar(acceso, rol);
@@ -172,7 +172,7 @@ internal static class VerificarAltaNodo
         var fallo = new FalloAntesDeConfirmar { Activo = true };
         await using (var conFallo = Contexto(fallo))
         {
-            var servicioConFallo = new NodoService(new NodoRepository(conFallo), new ParqueSolarRepository(conFallo), usuario);
+            var servicioConFallo = new NodoService(new NodoRepository(conFallo), new ParqueSolarRepository(conFallo), usuario, new MedicionRepositorySinLecturas());
             try { await servicioConFallo.CrearAsync(parque.ID, Datos()); throw new Exception("fallo-no-provocado"); }
             catch (FalloControladoException) { Exigir(true, "fallo-antes-del-commit"); }
             Exigir(!conFallo.ChangeTracker.Entries().Any(), "contexto-limpio-tras-fallo");
@@ -207,7 +207,7 @@ internal static class VerificarAltaNodo
                 await using var eliminacion = Contexto();
                 await eliminacion.ParquesSolares.Where(p => p.ID == otroParque.ID).ExecuteDeleteAsync();
             });
-            var resultado = await new NodoService(repositorio, new ParqueSolarRepository(lectura), usuario)
+            var resultado = await new NodoService(repositorio, new ParqueSolarRepository(lectura), usuario, new MedicionRepositorySinLecturas())
                 .CrearAsync(otroParque.ID, Datos());
             Exigir(resultado.Errores.Single().Codigo == CodigoErrorAltaNodo.ParqueNoEncontrado && resultado.Nodo is null,
                 "perdida-concurrente-traducida");

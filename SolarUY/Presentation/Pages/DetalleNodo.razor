@@ -69,9 +69,20 @@ else if (_resultado?.Codigo == CodigoConsultaNodo.Exitoso && _resultado.Nodo is 
                                 <dt>Potencia nominal</dt><dd>@panel.PotenciaNominalW.ToString(CultureInfo.CurrentCulture) W</dd>
                                 <dt>Fecha de instalación</dt><dd>@panel.FechaInstalacion.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture) UTC</dd>
                                 <dt>Estado</dt><dd>@panel.Estado</dd>
-                                <dt>Generación actual</dt><dd>@(panel.GeneracionActualW is { } generacion ? $"{generacion.ToString(CultureInfo.CurrentCulture)} W" : "Sin mediciones")</dd>
+                                <dt>Generación actual</dt>
+                                @if (panel.UltimaMedicion is { } medicion)
+                                {
+                                    <dd>@medicion.GeneracionActualW.ToString(CultureInfo.CurrentCulture) W</dd>
+                                    <dt>Estado de la medición</dt><dd>@medicion.Estado</dd>
+                                    <dt>Fecha de medición</dt><dd>@medicion.FechaUtc.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture) UTC</dd>
+                                }
+                                else
+                                {
+                                    <dd>Sin mediciones</dd>
+                                }
                                 <dt>Último mantenimiento</dt><dd>@(panel.UltimoMantenimiento is { } mantenimiento ? mantenimiento.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture) + " UTC" : "Sin mantenimientos")</dd>
                             </dl>
+                            <a class="btn btn-primary" href="@($"/paneles/{panel.ID:D}/monitoreo")" data-enhance-nav="false">Monitoreo</a>
                         </div>
                     </article>
                 }

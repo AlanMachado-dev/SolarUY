@@ -175,7 +175,7 @@ internal static class VerificarAltaPanel
             "mismo-nombre-en-otros-nodos-y-parques");
         await using (var lectura = Contexto(conexion))
         {
-            var nodos = new NodoService(new NodoRepository(lectura), new ParqueSolarRepository(lectura), Usuario("Administrador"));
+            var nodos = new NodoService(new NodoRepository(lectura), new ParqueSolarRepository(lectura), Usuario("Administrador"), new MedicionRepositorySinLecturas());
             var detalle = await nodos.ObtenerPorIdAsync(nodo.ID);
             Exigir(detalle.Paneles.Count == 4 && detalle.Paneles.All(panel => panel.NodoId == nodo.ID)
                 && detalle.Paneles.SequenceEqual(detalle.Paneles.OrderBy(panel => panel.Nombre).ThenBy(panel => panel.ID)), "detalle-propio-ordenado");
@@ -187,7 +187,7 @@ internal static class VerificarAltaPanel
                 && listado.Parques.Single(p => p.ID == otro.ID).CapacidadTotalEstimadaMw == 0.0005505m, "dto-cantidades-capacidad-varios-parques");
             foreach (var rol in new string?[] { null, "Operador" })
             {
-                var rechazo = await new NodoService(new RepositorioProhibido(), new ParqueSolarRepository(lectura), Usuario(rol)).ObtenerPorIdAsync(nodo.ID);
+                var rechazo = await new NodoService(new RepositorioProhibido(), new ParqueSolarRepository(lectura), Usuario(rol), new MedicionRepositorySinLecturas()).ObtenerPorIdAsync(nodo.ID);
                 Exigir(rechazo.Nodo is null && rechazo.Paneles.Count == 0, "consulta-rechazada-sin-datos");
             }
         }

@@ -116,7 +116,8 @@ internal static class Program
         builder.Services.AddDbContext<SolarUyDbContext>(o => PersistenciaConfiguration.ConfigurarContexto(o, conexion.ConnectionString));
         builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
         builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
-        builder.Services.AddScoped<INodoRepository, NodoRepository>(); builder.Services.AddScoped<INodoService, NodoService>();
+        builder.Services.AddScoped<INodoRepository, NodoRepository>(); builder.Services.AddScoped<SolarUY.Application.Monitoreo.IMedicionRepository, MedicionRepositorySinLecturas>();
+        builder.Services.AddScoped<INodoService, NodoService>();
         builder.Services.AddScoped<IPanelRepository, PanelRepository>(); builder.Services.AddScoped<IPanelService, PanelService>();
         builder.Services.AddSingleton(TimeProvider.System); builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IUsuarioActualService, UsuarioActualService>();
@@ -169,7 +170,7 @@ internal static class Program
         foreach (var rol in new string?[] { null, "SinRol", "Operador", "Administrador", "Ambos" })
         {
             var usuario = new UsuarioActualService(new HttpContextAccessor { HttpContext = new DefaultHttpContext { User = Principal(rol) } });
-            var servicio = new NodoService(nodos, parques, usuario);
+            var servicio = new NodoService(nodos, parques, usuario, new MedicionRepositorySinLecturas());
             var antes = ContadorRepository.Llamadas;
             var detalle = await servicio.ObtenerPorIdAsync(nodoId);
             if (rol is null or "SinRol")

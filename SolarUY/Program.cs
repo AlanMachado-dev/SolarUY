@@ -1,4 +1,6 @@
 using SolarUY.Components;
+using SolarUY.Application.Monitoreo;
+using SolarUY.Presentation.Monitoreo;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -32,10 +34,14 @@ builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics", LogLevel.None);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<NotificacionMedicion>();
+builder.Services.AddSingleton<INotificacionMedicion>(servicios => servicios.GetRequiredService<NotificacionMedicion>());
 
 var conexion = PersistenciaConfiguration.ObtenerConexion(builder.Configuration);
-builder.Services.AddDbContext<SolarUyDbContext>(options =>
+builder.Services.AddDbContextFactory<SolarUyDbContext>(options =>
     PersistenciaConfiguration.ConfigurarContexto(options, conexion));
 builder.Services.AddScoped<IParqueSolarRepository, ParqueSolarRepository>();
 builder.Services.AddScoped<IParqueSolarService, ParqueSolarService>();
@@ -43,6 +49,8 @@ builder.Services.AddScoped<INodoRepository, NodoRepository>();
 builder.Services.AddScoped<INodoService, NodoService>();
 builder.Services.AddScoped<IPanelRepository, PanelRepository>();
 builder.Services.AddScoped<IPanelService, PanelService>();
+builder.Services.AddScoped<IMedicionRepository, MedicionRepository>();
+builder.Services.AddScoped<MonitoreoService>();
 builder.Services.AddSingleton(TimeProvider.System);
 SeguridadConfiguration.AgregarAutenticacionExterna(builder.Services, builder.Configuration);
 builder.Services.AddAuthorization();
@@ -147,8 +155,10 @@ app.MapPost("/cuenta/cerrar-sesion", async (HttpContext context, IAntiforgery an
     }
 }).RequireAuthorization();
 
+app.MapHub<MonitoreoHub>("/hubs/monitoreo");
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(SolarUY.Client._Imports).Assembly);
 

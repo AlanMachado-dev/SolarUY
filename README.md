@@ -61,6 +61,14 @@ Para detener el proyecto, presionar `Ctrl+C` en la terminal. La configuración y
 
 La [guía de acceso externo](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md) incluye Auth0, roles, configuración privada y diagnóstico. La [guía MySQL](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md) conserva la preparación del esquema. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).
 
+## Monitoreo en tiempo real
+
+El detalle del nodo muestra la última medición guardada de cada panel, con su potencia en W, estado y fecha UTC. El monitoreo individual muestra esa lectura en un medidor radial y recibe las siguientes lecturas en vivo.
+
+En una sesión de Administrador, el sensor se ejecuta en el navegador con Blazor WebAssembly y consulta `InversorSimulado` cada 20 segundos. El inversor simulado genera un estado y, cuando está operativo, una potencia aleatoria por debajo de la potencia nominal del panel. En falla, mantenimiento o desactivación genera 0 W.
+
+El sensor envía la lectura por SignalR. El servidor la asocia al panel, le asigna la fecha UTC y la guarda. La vista interactiva de Blazor Server recibe la actualización después de que se confirma el guardado. Administrador y Operador pueden consultar el monitoreo. [Diagrama de WebAssembly](.agents/images/Diagrama_WebAssembly.png).
+
 ## Documentación del proyecto
 
 Accesos directos a las guías, los documentos de cada requerimiento y modificación, y las instrucciones de desarrollo. Al agregar documentación nueva, actualizar este índice.

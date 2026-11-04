@@ -1,0 +1,97 @@
+@namespace SolarUY.Presentation.Monitoreo
+@using Radzen.Blazor
+@using SolarUY.Application.Monitoreo
+@implements IDisposable
+@inject MonitoreoService Servicio
+@inject NotificacionMedicion Notificacion
+@inject AuthenticationStateProvider Autenticacion
+
+<section aria-live="polite">
+    @if (_lectura is { } lectura)
+    {
+        <dl>
+            <dt>Estado</dt><dd>@lectura.Estado</dd>
+            <dt>Generación actual</dt>
+            <dd>
+                @if (lectura.GeneracionActualW is { } potencia)
+                {
+                    var maximo = MaximoEscala(lectura.PotenciaNominalW, potencia);
+                    <div aria-hidden="true">
+                        <RadzenRadialGauge Style="width: 100%; max-width: 24rem; height: 16rem;">
+                            <RadzenRadialGaugeScale Min="0" Max="@maximo" Step="@(maximo / 4)" FormatString="{0:G4}">
+                                <RadzenRadialGaugeScalePointer Value="@potencia" />
+                            </RadzenRadialGaugeScale>
+                        </RadzenRadialGauge>
+                    </div>
+                    <span>@potencia W</span>
+                }
+                else
+                {
+                    <span>No disponible</span>
+                }
+            </dd>
+            <dt>Fecha de medición</dt><dd>@(lectura.FechaUtc is { } fecha ? $"{fecha:dd/MM/yyyy HH:mm:ss} UTC" : "Aún no hay mediciones")</dd>
+        </dl>
+    }
+    else
+    {
+        <p>@_mensaje</p>
+    }
+</section>
+
+@code {
+    [Parameter] public Guid PanelId { get; set; }
+
+    private LecturaPanelDto? _lectura;
+    private IDisposable? _suscripcion;
+    private bool _cerrado;
+    private string _mensaje = "Cargando mediciones…";
+
+    private static double MaximoEscala(float nominal, float lectura)
+    {
+        var referencia = float.IsFinite(nominal) && nominal > 0 ? nominal : 1;
+        return Math.Max(referencia, lectura);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await Autenticacion.GetAuthenticationStateAsync()).User;
+        if (_cerrado)
+            return;
+
+        try
+        {
+            _suscripcion = Notificacion.Suscribir(usuario, PanelId, RecibirAsync);
+            var lectura = await Servicio.ConsultarAsync(PanelId);
+            if (!_cerrado && lectura is not null)
+                Actualizar(lectura);
+            else
+                _mensaje = "No se encontró el panel.";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _mensaje = "Acceso denegado.";
+        }
+    }
+
+    private Task RecibirAsync(LecturaPanelDto lectura) => InvokeAsync(() =>
+    {
+        if (!_cerrado)
+        {
+            Actualizar(lectura);
+            StateHasChanged();
+        }
+    });
+
+    private void Actualizar(LecturaPanelDto lectura)
+    {
+        if (lectura.PanelId == PanelId && (_lectura is null || lectura.EsPosteriorA(_lectura)))
+            _lectura = lectura;
+    }
+
+    public void Dispose()
+    {
+        _cerrado = true;
+        _suscripcion?.Dispose();
+    }
+}

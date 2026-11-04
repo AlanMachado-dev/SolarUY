@@ -1,0 +1,42 @@
+@page "/paneles/{PanelId:guid}/monitoreo"
+@namespace SolarUY.Presentation.Pages
+@using SolarUY.Application.Monitoreo
+@using SolarUY.Presentation.Monitoreo
+@using SolarUY.Client.Monitoreo
+@attribute [Authorize(Roles = NotificacionMedicion.RolesConsulta)]
+@inject MonitoreoService Servicio
+
+<PageTitle>Monitoreo del panel - SolarUY</PageTitle>
+<h1>Monitoreo del panel</h1>
+
+<LecturaEnVivo PanelId="PanelId" @key="PanelId"
+               @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+
+<AuthorizeView Roles="Administrador">
+    @if (_panel is { } panel)
+    {
+        <SensorMonitoreo PanelId="panel.PanelId" PotenciaNominalW="panel.PotenciaNominalW"
+                         @key="panel.PanelId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+    }
+</AuthorizeView>
+
+@code {
+    [Parameter] public Guid PanelId { get; set; }
+
+    private LecturaPanelDto? _panel;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _panel = null;
+        var id = PanelId;
+        var estado = await EstadoAutenticacion;
+        if (estado.User.IsInRole("Administrador"))
+        {
+            var panel = await Servicio.ConsultarAsync(id);
+            if (id == PanelId)
+                _panel = panel;
+        }
+    }
+
+    [CascadingParameter] private Task<AuthenticationState> EstadoAutenticacion { get; set; } = null!;
+}

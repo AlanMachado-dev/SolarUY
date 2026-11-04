@@ -1,3 +1,4 @@
+using SolarUY.Application.Monitoreo;
 using SolarUY.Application.ParquesSolares;
 using SolarUY.Application.Paneles;
 using SolarUY.Domain.Nodos;
@@ -9,13 +10,15 @@ public sealed class NodoService : INodoService
     private readonly INodoRepository _nodoRepository;
     private readonly IParqueSolarRepository _parqueRepository;
     private readonly IUsuarioActualService _usuarioActual;
+    private readonly IMedicionRepository _medicionRepository;
 
     public NodoService(INodoRepository nodoRepository, IParqueSolarRepository parqueRepository,
-        IUsuarioActualService usuarioActual)
+        IUsuarioActualService usuarioActual, IMedicionRepository medicionRepository)
     {
         _nodoRepository = nodoRepository;
         _parqueRepository = parqueRepository;
         _usuarioActual = usuarioActual;
+        _medicionRepository = medicionRepository;
     }
 
     public async Task<ResultadoDetalleNodoDto> ObtenerPorIdAsync(Guid id,
@@ -29,13 +32,16 @@ public sealed class NodoService : INodoService
             return new(CodigoConsultaNodo.NoEncontrado, null);
 
         var nodo = await _nodoRepository.ObtenerPorIdAsync(id, cancellationToken);
-        return nodo is null
-            ? new(CodigoConsultaNodo.NoEncontrado, null)
-            : new(CodigoConsultaNodo.Exitoso, Mapear(nodo))
-            {
-                Paneles = nodo.Paneles.OrderBy(panel => panel.Nombre.Valor).ThenBy(panel => panel.ID)
-                    .Select(PanelDto.Desde).ToArray()
-            };
+        if (nodo is null)
+            return new(CodigoConsultaNodo.NoEncontrado, null);
+
+        var mediciones = await _medicionRepository.ObtenerUltimasAsync(
+            nodo.Paneles.Select(panel => panel.ID).ToArray(), cancellationToken);
+        return new(CodigoConsultaNodo.Exitoso, Mapear(nodo))
+        {
+            Paneles = nodo.Paneles.OrderBy(panel => panel.Nombre.Valor).ThenBy(panel => panel.ID)
+                .Select(panel => PanelDto.Desde(panel, mediciones.GetValueOrDefault(panel.ID))).ToArray()
+        };
     }
 
     public async Task<ResultadoAltaNodoDto> CrearAsync(Guid parqueId, CrearNodoDto datos,

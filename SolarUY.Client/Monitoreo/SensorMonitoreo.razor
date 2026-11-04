@@ -1,0 +1,72 @@
+@namespace SolarUY.Client.Monitoreo
+@using Microsoft.AspNetCore.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@inject NavigationManager Navegacion
+
+<p role="status">@_estado</p>
+
+@code {
+    [Parameter] public Guid PanelId { get; set; }
+    [Parameter] public float PotenciaNominalW { get; set; }
+
+    private readonly InversorSimulado _inversor = new();
+    private readonly CancellationTokenSource _cancelacion = new();
+    private Task? _ciclo;
+    private string _estado = "Sensor activo. Esperando el primer envío…";
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            _ciclo = EnviarPeriodicamenteAsync(PanelId, PotenciaNominalW, _cancelacion.Token);
+    }
+
+    private async Task EnviarPeriodicamenteAsync(Guid panelId, float potenciaNominalW, CancellationToken token)
+    {
+        await using var conexion = new HubConnectionBuilder()
+            .WithUrl(Navegacion.ToAbsoluteUri("hubs/monitoreo"))
+            .Build();
+        using var reloj = new PeriodicTimer(TimeSpan.FromSeconds(20));
+
+        while (await reloj.WaitForNextTickAsync(token))
+        {
+            try
+            {
+                if (conexion.State == HubConnectionState.Disconnected)
+                    await conexion.StartAsync(token);
+
+                var lectura = _inversor.Leer(potenciaNominalW);
+                await conexion.InvokeAsync("Registrar",
+                    new { PanelId = panelId, lectura.GeneracionActualW, lectura.Estado }, token);
+                _estado = "Último envío confirmado.";
+            }
+            catch (HubException)
+            {
+                _estado = "El servidor rechazó la lectura. El sensor volverá a intentar en el próximo ciclo.";
+            }
+            catch (Exception) when (!token.IsCancellationRequested)
+            {
+                _estado = "Conexión interrumpida. El sensor volverá a intentar en el próximo ciclo.";
+                await conexion.StopAsync(token);
+            }
+
+            if (!token.IsCancellationRequested)
+                await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _cancelacion.CancelAsync();
+        try
+        {
+            if (_ciclo is not null)
+                await _ciclo;
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            _cancelacion.Dispose();
+        }
+    }
+}
