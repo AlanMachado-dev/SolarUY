@@ -3,12 +3,18 @@ using SolarUY.Application.Monitoreo;
 
 namespace SolarUY.Presentation.Monitoreo;
 
-public sealed class NotificacionMedicion : INotificacionMedicion
+public sealed class NotificacionMedicion : INotificacionMedicion, IPanelesMonitoreados
 {
     public const string RolesConsulta = "Administrador,Operador";
 
     private readonly object _bloqueo = new();
     private readonly Dictionary<Guid, List<Suscripcion>> _suscripciones = [];
+
+    public IReadOnlyCollection<Guid> ObtenerPaneles()
+    {
+        lock (_bloqueo)
+            return Array.AsReadOnly(_suscripciones.Keys.ToArray());
+    }
 
     public IDisposable Suscribir(ClaimsPrincipal usuario, Guid panelId, Func<LecturaPanelDto, Task> recibir)
     {

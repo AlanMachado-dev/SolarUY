@@ -1,0 +1,113 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<AuthorizeView Roles="Administrador,Operador">
+    <Authorized>
+        @if (_estado.Validada)
+        {
+            <aside class="chat-asistente" aria-label="Asistente de consultas">
+                <button class="chat-cabecera" @onclick="AlternarAsync" aria-expanded="@(!_estado.Minimizado)">
+                    <span>Consultas SolarUY</span><span aria-hidden="true">@(_estado.Minimizado ? "▲" : "▼")</span>
+                </button>
+                @if (!_estado.Minimizado)
+                {
+                    <div class="chat-cuerpo">
+                        <div class="chat-acciones"><small>Potencia y mediciones simuladas · Solo lectura</small>
+                            <button @onclick="NuevaAsync">Nueva conversación</button></div>
+                        <div class="chat-historial" role="log" aria-live="polite" aria-relevant="additions" tabindex="0">
+                            @foreach (var mensaje in _estado.Mensajes)
+                            {
+                                <div class="chat-mensaje @(mensaje.Rol == "user" ? "pregunta" : "respuesta")">
+                                    <strong>@(mensaje.Rol == "user" ? "Vos" : "Asistente")</strong>
+                                    <p>@mensaje.Texto</p>
+                                </div>
+                            }
+                        </div>
+                        <div role="status" aria-live="polite" class="chat-estado">
+                            @if (_estado.Ocupado) { <span>Consultando…</span> }
+                            @if (!string.IsNullOrEmpty(_estado.Error)) { <span>@_estado.Error</span> }
+                        </div>
+                        @if (_estado.AccesoRequerido)
+                        {
+                            <a href="/cuenta/iniciar-sesion">Iniciar sesión</a>
+                        }
+                        @if (_estado.Reintentar)
+                        {
+                            <button @onclick="ReintentarAsync" disabled="@_estado.Ocupado">Reintentar mensaje</button>
+                        }
+                        <form @onsubmit="EnviarAsync" @onsubmit:preventDefault>
+                            <label for="pregunta-asistente">Tu consulta</label>
+                            <textarea id="pregunta-asistente" @bind="_pregunta" maxlength="2000" rows="2"
+                                disabled="@(!_estado.Disponible || _estado.Ocupado)" placeholder="¿Cómo está funcionando todo hoy?"></textarea>
+                            <button type="submit" disabled="@(!_estado.Disponible || _estado.Ocupado)">Enviar</button>
+                        </form>
+                    </div>
+                }
+            </aside>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private IJSObjectReference? _modulo;
+    private DotNetObjectReference<ChatAsistente>? _referencia;
+    private EstadoChatDto _estado = new();
+    private string _pregunta = "";
+    private readonly string _instancia = Guid.NewGuid().ToString("N");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _modulo = await JS.InvokeAsync<IJSObjectReference>("import", "/js/chat-asistente.js");
+        _referencia = DotNetObjectReference.Create(this);
+        await _modulo.InvokeVoidAsync("iniciar", _referencia, _instancia);
+    }
+
+    [JSInvokable]
+    public Task ActualizarEstado(EstadoChatDto estado)
+    {
+        _estado = estado;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AlternarAsync() { if (_modulo is not null) await _modulo.InvokeVoidAsync("alternar"); }
+    private async Task NuevaAsync() { _pregunta = ""; if (_modulo is not null) await _modulo.InvokeVoidAsync("nueva"); }
+    private async Task ReintentarAsync() { if (_modulo is not null) await _modulo.InvokeVoidAsync("reintentar"); }
+    private async Task EnviarAsync()
+    {
+        if (_modulo is null || string.IsNullOrWhiteSpace(_pregunta)) return;
+        var texto = _pregunta;
+        _pregunta = "";
+        await _modulo.InvokeVoidAsync("enviar", texto);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_modulo is not null)
+        {
+            try { await _modulo.InvokeVoidAsync("cerrar", _instancia); await _modulo.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+        _referencia?.Dispose();
+    }
+
+    public sealed class EstadoChatDto
+    {
+        public bool Validada { get; set; }
+        public bool Disponible { get; set; }
+        public bool Minimizado { get; set; } = true;
+        public bool Ocupado { get; set; }
+        public bool Reintentar { get; set; }
+        public bool AccesoRequerido { get; set; }
+        public string? Error { get; set; }
+        public List<MensajeChatDto> Mensajes { get; set; } = [];
+    }
+
+    public sealed class MensajeChatDto
+    {
+        public string Rol { get; set; } = "";
+        public string Texto { get; set; } = "";
+    }
+}

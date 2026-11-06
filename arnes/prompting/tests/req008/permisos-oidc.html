@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permisos OIDC — aceptación req008</title>
+<main>
+  <h1>Comprobación de permisos de publicación</h1>
+  <p>Herramienta exclusiva del entorno aislado de aceptación.</p>
+  <p>Envía una negociación al hub existente con la sesión del navegador. No envía mediciones ni muestra cookies o tokens.</p>
+  <form id="comprobar" method="post" action="/hubs/monitoreo/negotiate?negotiateVersion=1">
+    <button type="submit">Comprobar rechazo del acceso de publicación</button>
+  </form>
+  <p role="status" id="resultado">Sin ejecutar.</p>
+  <p>Con Operador se espera HTTP 403; sin sesión, el servidor debe exigir autenticación. Verificar el estado en los registros depurados de Nginx.</p>
+  <a href="/parques-solares">Volver a SolarUY</a>
+</main>
+<script>
+  document.getElementById('comprobar').addEventListener('submit', async evento => {
+    evento.preventDefault();
+    const resultado = document.getElementById('resultado');
+    try {
+      const respuesta = await fetch(evento.currentTarget.action, { method: 'POST', credentials: 'same-origin' });
+      const exigeAcceso = respuesta.redirected && new URL(respuesta.url).pathname === '/cuenta/iniciar-sesion';
+      resultado.textContent = `Estado HTTP: ${respuesta.status}. Redirección al acceso: ${exigeAcceso ? 'sí' : 'no'}.`;
+    } catch {
+      resultado.textContent = 'No se pudo completar la comprobación.';
+    }
+  });
+</script>
+</html>

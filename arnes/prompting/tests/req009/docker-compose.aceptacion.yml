@@ -1,0 +1,108 @@
+name: solaruy-req009-aceptacion
+
+x-app: &app
+  image: solaruy:req009-aceptacion
+  build:
+    context: ../../../..
+    dockerfile: Dockerfile
+  labels:
+    solaruy.prueba: req009
+  environment: &entorno
+    ASPNETCORE_ENVIRONMENT: Production
+    ASPNETCORE_HTTP_PORTS: "8080"
+    Balanceo__Habilitado: "true"
+    Balanceo__ProxyConfiable: 172.30.89.10
+    Balanceo__AutoridadPublica: localhost:9449
+    Balanceo__DirectorioClaves: /app/claves
+    Balanceo__CertificadoClaves: /run/private/claves.pfx
+    Balanceo__PasswordCertificadoFile: /run/private/claves-password.txt
+    AsistenteArchivoPrivado: /run/private/asistente.private.json
+    Asistente__Habilitado: ${SOLARUY_REQ009_HABILITADO:-false}
+  volumes:
+    - type: bind
+      source: ${SOLARUY_REQ009_RAIZ}/.solaruy-acceptance/req009/appsettings.Local.json
+      target: /app/appsettings.Local.json
+      read_only: true
+      bind: {create_host_path: false}
+    - type: bind
+      source: ${SOLARUY_REQ009_RAIZ}/.solaruy-private
+      target: /run/private
+      read_only: true
+      bind: {create_host_path: false}
+    - type: bind
+      source: ${SOLARUY_REQ009_RAIZ}/.solaruy-acceptance/req009/claves
+      target: /app/claves
+      bind: {create_host_path: false}
+  networks: [aceptacion]
+  depends_on:
+    mysql-pruebas: {condition: service_healthy}
+  healthcheck:
+    test: [CMD, curl, --fail, --silent, --max-time, "4", "http://localhost:8080/health/ready"]
+    interval: 5s
+    timeout: 5s
+    retries: 12
+    start_period: 20s
+
+services:
+  app1:
+    <<: *app
+    environment:
+      <<: *entorno
+      Balanceo__Instancia: app1
+    ports: ["127.0.0.1:14319:8080"]
+  app2:
+    <<: *app
+    environment:
+      <<: *entorno
+      Balanceo__Instancia: app2
+    ports: ["127.0.0.1:14320:8080"]
+  nginx:
+    image: nginx:1.28.0-alpine
+    labels: {solaruy.prueba: req009}
+    ports: ["127.0.0.1:9449:443"]
+    volumes:
+      - type: bind
+        source: ${SOLARUY_REQ009_RAIZ}/.solaruy-acceptance/req009/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+      - type: bind
+        source: ${SOLARUY_REQ009_RAIZ}/arnes/prompting/tests/req009/permisos-oidc.html
+        target: /run/pruebas/permisos-oidc.html
+        read_only: true
+      - type: bind
+        source: ${SOLARUY_REQ009_RAIZ}/.solaruy-private
+        target: /run/private
+        read_only: true
+    depends_on:
+      app1: {condition: service_healthy}
+      app2: {condition: service_healthy}
+    networks:
+      aceptacion: {ipv4_address: 172.30.89.10}
+  mysql-pruebas:
+    image: mysql:8.4
+    labels: {solaruy.prueba: req009}
+    environment:
+      MYSQL_DATABASE: solaruy_req009
+      MYSQL_USER: solaruy
+      MYSQL_PASSWORD_FILE: /run/prueba/mysql-password.txt
+      MYSQL_ROOT_PASSWORD_FILE: /run/prueba/mysql-root-password.txt
+    ports: ["127.0.0.1:43319:3306"]
+    volumes:
+      - datos:/var/lib/mysql
+      - type: bind
+        source: ${SOLARUY_REQ009_RAIZ}/.solaruy-acceptance/req009
+        target: /run/prueba
+        read_only: true
+    networks: [aceptacion]
+    healthcheck:
+      test: [CMD, mysqladmin, ping, --silent, --host=localhost]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+networks:
+  aceptacion:
+    ipam:
+      config: [{subnet: 172.30.89.0/24}]
+volumes:
+  datos:

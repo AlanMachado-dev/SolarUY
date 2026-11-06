@@ -1,0 +1,88 @@
+name: ${SOLARUY_PROYECTO:-solaruy}
+
+x-servidor: &servidor
+  image: solaruy:req008
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  environment: &entorno
+    ASPNETCORE_ENVIRONMENT: Production
+    ASPNETCORE_HTTP_PORTS: "8080"
+    Balanceo__Habilitado: "true"
+    Balanceo__ProxyConfiable: ${SOLARUY_PROXY_IP:-172.30.80.10}
+    Balanceo__AutoridadPublica: localhost:${SOLARUY_PUERTO:-8080}
+    Balanceo__DirectorioClaves: /app/claves
+    Balanceo__CertificadoClaves: /run/private/claves.pfx
+    Balanceo__PasswordCertificadoFile: /run/private/claves-password.txt
+    Balanceo__ServidorMySqlLoopback: host.docker.internal
+    Balanceo__IntervaloSincronizacionSegundos: "1"
+    AsistenteArchivoPrivado: /run/private/asistente.private.json
+  volumes:
+    - type: bind
+      source: ${SOLARUY_CONFIG_LOCAL:-./SolarUY/appsettings.Local.json}
+      target: /app/appsettings.Local.json
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${SOLARUY_PRIVADO_DIR:-./.solaruy-private}
+      target: /run/private
+      read_only: true
+      bind:
+        create_host_path: false
+    - claves:/app/claves
+  networks:
+    - solaruy
+  healthcheck:
+    test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:8080/health/ready"]
+    interval: 5s
+    timeout: 5s
+    retries: 6
+    start_period: 20s
+
+services:
+  app1:
+    <<: *servidor
+    environment:
+      <<: *entorno
+      Balanceo__Instancia: app1
+    ports:
+      - "127.0.0.1:${SOLARUY_DIAGNOSTICO_1:-4000}:8080"
+  app2:
+    <<: *servidor
+    environment:
+      <<: *entorno
+      Balanceo__Instancia: app2
+    ports:
+      - "127.0.0.1:${SOLARUY_DIAGNOSTICO_2:-4001}:8080"
+  nginx:
+    image: nginx:1.28.0-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SOLARUY_PUERTO:-8080}:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - type: bind
+        source: ${SOLARUY_PRIVADO_DIR:-./.solaruy-private}
+        target: /run/private
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+    networks:
+      solaruy:
+        ipv4_address: ${SOLARUY_PROXY_IP:-172.30.80.10}
+
+networks:
+  solaruy:
+    ipam:
+      config:
+        - subnet: ${SOLARUY_SUBRED:-172.30.80.0/24}
+
+volumes:
+  claves:

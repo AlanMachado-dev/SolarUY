@@ -6,6 +6,32 @@ namespace SolarUY.Infrastructure.Seguridad;
 
 public sealed class SesionCookieEventsHandler : CookieAuthenticationEvents
 {
+    public override Task SigningIn(CookieSigningInContext context)
+    {
+        context.Properties.Items["solaruy.session"] = Guid.NewGuid().ToString("N");
+        return Task.CompletedTask;
+    }
+
+    public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
+    {
+        if (context.Request.Path.StartsWithSegments("/api/asistente"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        return base.RedirectToLogin(context);
+    }
+
+    public override Task RedirectToAccessDenied(RedirectContext<CookieAuthenticationOptions> context)
+    {
+        if (context.Request.Path.StartsWithSegments("/api/asistente"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+        return base.RedirectToAccessDenied(context);
+    }
+
     private readonly ILogger<SesionCookieEventsHandler> _logger;
 
     public SesionCookieEventsHandler(ILogger<SesionCookieEventsHandler> logger)

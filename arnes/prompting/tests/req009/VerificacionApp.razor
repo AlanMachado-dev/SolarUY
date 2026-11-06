@@ -1,0 +1,18 @@
+@namespace SolarUY.Req009
+@page "/"
+@page "/verificacion"
+@page "/paneles/{Id:guid}/monitoreo"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+<!DOCTYPE html>
+<html lang="es">
+<head><base href="/" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="SolarUY.styles.css" /></head>
+<body>
+    <h1>Arnés aislado req009</h1>
+    <p>Identidad y modelo sintéticos. MCP y MySQL reales de prueba.</p>
+    <a href="/verificacion">Otra página</a>
+    <SolarUY.Presentation.Asistente.ChatAsistente @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>
+@code { [Parameter] public Guid Id { get; set; } }

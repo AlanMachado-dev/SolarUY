@@ -68,6 +68,8 @@ nunit-*.xml
 
 # Conexión privada del servidor
 /SolarUY/appsettings.Local.json
+**/appsettings.*.private.json
+**/asistente.private.json
 
 # Caché del arnés Python
 __pycache__/
@@ -75,3 +77,8 @@ __pycache__/
 
 # Token privado del analizador SonarQube
 /arnes/SonarQube/sonar-token.txt
+
+# Material privado del despliegue local y de la aceptación req008
+/.solaruy-private/
+/.solaruy-acceptance/
+**/node_modules/

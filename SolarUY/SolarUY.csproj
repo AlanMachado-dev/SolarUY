@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="**/*.private.json" />
+    <None Remove="**/*.private.json" />
+    <Content Update="appsettings.Local.json" CopyToPublishDirectory="Never" />
+    <PackageReference Include="ModelContextProtocol" Version="2.3.1" />
     <ProjectReference Include="..\SolarUY.Client\SolarUY.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12" />

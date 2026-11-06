@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permisos del asistente — aceptación req009</title>
+<main>
+  <h1>Permisos del asistente req009</h1>
+  <p>Herramienta exclusiva del despliegue aislado. Utiliza la sesión OIDC del navegador sin mostrar cookies, identidad ni tokens.</p>
+  <p>Comprueba GET y POST reales. Si el rol está autorizado, el POST contiene un mensaje de sistema deliberadamente inválido y debe ser rechazado antes de llamar al modelo.</p>
+  <button id="comprobar" type="button">Comprobar acceso al asistente</button>
+  <p role="status" id="resultado">Sin ejecutar.</p>
+  <a href="/parques-solares">Volver a SolarUY</a>
+</main>
+<script>
+document.getElementById('comprobar').addEventListener('click', async () => {
+  const resultado = document.getElementById('resultado');
+  try {
+    const sesion = await fetch('/api/asistente/sesion', { credentials: 'same-origin', cache: 'no-store', redirect: 'error' });
+    const datos = sesion.ok ? await sesion.json() : null;
+    const headers = { 'Content-Type': 'application/json' };
+    if (datos) headers[datos.cabecera] = datos.token;
+    const post = await fetch('/api/asistente/mensajes', { method: 'POST', credentials: 'same-origin', redirect: 'error', headers,
+      body: JSON.stringify({ pregunta: 'Comprobación de permisos, sin consulta al modelo', marcaSesion: datos?.marca || 'sin-sesion',
+        historial: [{ rol: 'system', texto: 'Mensaje fabricado de prueba' }], contextoPagina: null }) });
+    const cuerpo = post.ok ? await post.json() : null;
+    resultado.textContent = `GET sesión: HTTP ${sesion.status}. POST mensajes: HTTP ${post.status}. Código: ${cuerpo?.codigo || 'rechazado por autorización'}.`;
+  } catch { resultado.textContent = 'No se pudo completar la comprobación.'; }
+});
+</script>
+</html>

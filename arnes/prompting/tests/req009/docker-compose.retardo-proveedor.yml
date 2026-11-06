@@ -1,0 +1,22 @@
+services:
+  app1:
+    environment:
+      HTTPS_PROXY: http://retardo-proveedor:8080
+      NO_PROXY: localhost,127.0.0.1,app1,app2,mysql-pruebas
+    depends_on:
+      retardo-proveedor: {condition: service_healthy}
+  retardo-proveedor:
+    image: python:3.12-alpine
+    labels: {solaruy.prueba: req009}
+    command: [python, -u, /run/pruebas/retardo-proveedor.py]
+    volumes:
+      - type: bind
+        source: ${SOLARUY_REQ009_RAIZ}/arnes/prompting/tests/req009/retardo-proveedor.py
+        target: /run/pruebas/retardo-proveedor.py
+        read_only: true
+    networks: [aceptacion]
+    healthcheck:
+      test: [CMD, python, -c, "import socket; socket.create_connection(('127.0.0.1',8080),1).close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 10

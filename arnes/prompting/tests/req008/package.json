@@ -1,0 +1,8 @@
+{
+  "name": "solaruy-req008-verificacion",
+  "private": true,
+  "description": "Herramientas funcionales auxiliares; las sesiones sintéticas no acreditan aceptación OIDC real.",
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

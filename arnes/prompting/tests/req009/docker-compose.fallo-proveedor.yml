@@ -1,0 +1,5 @@
+# Inyección reversible exclusiva de aceptación; no contiene credenciales ni cambia el adaptador.
+services:
+  app1:
+    extra_hosts:
+      - "generativelanguage.googleapis.com:127.0.0.1"

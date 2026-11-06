@@ -1,0 +1,40 @@
+services:
+  nginx:
+    volumes:
+      - ./.solaruy-acceptance/nginx-oidc.conf:/etc/nginx/nginx.conf:ro
+      - ./arnes/prompting/tests/req008/permisos-oidc.html:/pruebas/permisos-oidc.html:ro
+  app1:
+    depends_on:
+      mysql-pruebas:
+        condition: service_healthy
+  app2:
+    depends_on:
+      mysql-pruebas:
+        condition: service_healthy
+  mysql-pruebas:
+    image: mysql:8.4.8
+    environment:
+      MYSQL_DATABASE: solaruy_req008
+      MYSQL_USER: solaruy
+      MYSQL_PASSWORD_FILE: /run/private/mysql-password.txt
+      MYSQL_ROOT_PASSWORD_FILE: /run/private/mysql-root-password.txt
+    ports:
+      - "127.0.0.1:13308:3306"
+    volumes:
+      - mysql-pruebas:/var/lib/mysql
+      - type: bind
+        source: ./.solaruy-acceptance
+        target: /run/private
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--silent", "--host=localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    networks:
+      - solaruy
+volumes:
+  mysql-pruebas:

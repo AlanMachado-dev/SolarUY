@@ -13,6 +13,7 @@ public static class PersistenciaConfiguration
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
             .AddJsonFile($"appsettings.{entorno}.json", optional: true, reloadOnChange: false)
             .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables("ASPNETCORE_")
             .AddEnvironmentVariables()
             .AddCommandLine(args);
     }
@@ -59,7 +60,15 @@ public static class PersistenciaConfiguration
             // No incluir la excepción original: puede contener valores de conexión.
             throw new InvalidOperationException("ConnectionStrings:SolarUy no es una conexión MySQL válida; revisá servidor, base, usuario y opciones.");
         }
-        return conexion;
+        var servidorContenedor = configuracion["Balanceo:ServidorMySqlLoopback"];
+        if (string.IsNullOrWhiteSpace(servidorContenedor))
+            return conexion;
+        var conexionContenedor = new MySqlConnectionStringBuilder(conexion);
+        if (conexionContenedor.Server.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+            (System.Net.IPAddress.TryParse(conexionContenedor.Server, out var direccion) &&
+             System.Net.IPAddress.IsLoopback(direccion)))
+            conexionContenedor.Server = servidorContenedor;
+        return conexionContenedor.ConnectionString;
     }
 
     public static void ConfigurarContexto(DbContextOptionsBuilder options, string conexion)

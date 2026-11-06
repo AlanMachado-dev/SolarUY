@@ -1,0 +1,6 @@
+{
+  "name": "solaruy-req009-verificacion",
+  "private": true,
+  "description": "Arnés aislado; no acredita aceptación real de Gemini u OIDC.",
+  "devDependencies": { "playwright": "1.62.1" }
+}
