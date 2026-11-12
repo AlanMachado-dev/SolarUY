@@ -7,3 +7,10 @@ public enum EstadoPanel
     EnMantenimiento = 2,
     Desactivado = 3
 }
+
+public enum ResultadoCambioEstadoPanel
+{
+    Actualizado,
+    SinCambios,
+    NoPermitido
+}

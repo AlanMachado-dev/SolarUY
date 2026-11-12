@@ -1,5 +1,6 @@
 using SolarUY.Components;
 using SolarUY.Application.Monitoreo;
+using SolarUY.Application.Energia;
 using SolarUY.Presentation.Monitoreo;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -77,6 +78,10 @@ builder.Services.AddScoped<INodoService, NodoService>();
 builder.Services.AddScoped<IPanelRepository, PanelRepository>();
 builder.Services.AddScoped<IPanelService, PanelService>();
 builder.Services.AddScoped<IMedicionRepository, MedicionRepository>();
+builder.Services.AddScoped<IControlPanelRepository, ControlPanelRepository>();
+builder.Services.AddScoped<ControlPanelService>();
+builder.Services.AddScoped<IEnergiaRepository, EnergiaRepository>();
+builder.Services.AddScoped<EnergiaService>();
 builder.Services.AddScoped<MonitoreoService>();
 builder.Services.AddSingleton(TimeProvider.System);
 SeguridadConfiguration.AgregarAutenticacionExterna(builder.Services, builder.Configuration);

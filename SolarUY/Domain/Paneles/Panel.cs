@@ -16,6 +16,19 @@ public sealed class Panel
 
     private Panel() { }
 
+    public ResultadoCambioEstadoPanel CambiarEstadoOperativo(bool activar)
+    {
+        if (Estado is not (EstadoPanel.Operativo or EstadoPanel.Desactivado))
+            return ResultadoCambioEstadoPanel.NoPermitido;
+
+        var destino = activar ? EstadoPanel.Operativo : EstadoPanel.Desactivado;
+        if (Estado == destino)
+            return ResultadoCambioEstadoPanel.SinCambios;
+
+        Estado = destino;
+        return ResultadoCambioEstadoPanel.Actualizado;
+    }
+
     internal static Panel Crear(string? nombre, string? modelo, float potenciaNominalW,
         DateTime instanteUtc, Nodo? nodo)
     {

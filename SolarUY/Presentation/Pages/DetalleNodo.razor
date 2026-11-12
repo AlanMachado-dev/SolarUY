@@ -2,7 +2,9 @@
 @namespace SolarUY.Presentation.Pages
 @attribute [Authorize(Roles = "Administrador,Operador")]
 @using System.Globalization
+@using SolarUY.Application.Energia
 @using SolarUY.Application.Nodos
+@using SolarUY.Presentation.Monitoreo
 @inject INodoService NodoService
 @inject NavigationManager Navegacion
 @inject ILogger<DetalleNodo> Logger
@@ -51,6 +53,7 @@ else if (_resultado?.Codigo == CodigoConsultaNodo.Exitoso && _resultado.Nodo is 
                 <dt>Endpoint</dt><dd>@(nodo.Inversor.Sensor.Endpoint ?? "Sin endpoint asociado")</dd>
             </dl>
         </section>
+        <IndicadorEnergia ComponenteId="nodo.ID" Tipo="TipoComponenteEnergia.Nodo" />
         <section aria-labelledby="paneles-titulo" class="mb-4">
             <h2 id="paneles-titulo">Paneles solares</h2>
             @if (_resultado.Paneles.Count == 0)

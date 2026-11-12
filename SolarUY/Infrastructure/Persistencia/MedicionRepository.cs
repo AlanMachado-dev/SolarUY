@@ -45,16 +45,31 @@ public sealed class MedicionRepository(IDbContextFactory<SolarUyDbContext> conte
     public async Task<bool> GuardarAsync(Medicion medicion, CancellationToken cancellationToken)
     {
         await using var contexto = await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaccion = await contexto.Database.BeginTransactionAsync(cancellationToken);
+        var estado = await BloquearEstadoPanelAsync(contexto, medicion.Panel.ID, cancellationToken);
+        if (estado is null || !medicion.EsCompatibleConControl(estado.Value))
+            return false;
+
         contexto.Entry(medicion.Panel).State = EntityState.Unchanged;
         contexto.Add(medicion);
         try
         {
             await contexto.SaveChangesAsync(cancellationToken);
+            await transaccion.CommitAsync(cancellationToken);
             return true;
         }
         catch (DbUpdateException)
         {
             return false;
         }
+    }
+
+    internal static async Task<EstadoPanel?> BloquearEstadoPanelAsync(
+        SolarUyDbContext contexto, Guid panelId, CancellationToken cancellationToken)
+    {
+        var filas = await contexto.Database
+            .SqlQuery<int>($"SELECT Estado FROM Paneles WHERE ID = {panelId.ToString("D")} FOR UPDATE")
+            .ToListAsync(cancellationToken);
+        return filas.Count == 0 ? null : (EstadoPanel)filas.Single();
     }
 }

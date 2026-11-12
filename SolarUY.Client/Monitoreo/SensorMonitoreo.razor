@@ -35,7 +35,8 @@
                 if (conexion.State == HubConnectionState.Disconnected)
                     await conexion.StartAsync(token);
 
-                var lectura = _inversor.Leer(potenciaNominalW);
+                var habilitado = await conexion.InvokeAsync<bool>("ConsultarHabilitado", panelId, token);
+                var lectura = _inversor.Leer(potenciaNominalW, habilitado);
                 await conexion.InvokeAsync("Registrar",
                     new { PanelId = panelId, lectura.GeneracionActualW, lectura.Estado }, token);
                 _estado = "Último envío confirmado.";

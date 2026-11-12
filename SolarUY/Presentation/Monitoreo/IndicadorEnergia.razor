@@ -1,0 +1,75 @@
+@namespace SolarUY.Presentation.Monitoreo
+@using System.Globalization
+@using SolarUY.Application.Energia
+@inject EnergiaService Servicio
+@inject ILogger<IndicadorEnergia> Logger
+
+@if (_resultado is { } resultado)
+{
+    <section class="card mb-4" aria-labelledby="energia-estimada-titulo">
+        <div class="card-body">
+            <h2 id="energia-estimada-titulo" class="h5 card-title">Energía estimada de hoy</h2>
+            @if (resultado.EnergiaKwh is { } energiaKwh)
+            {
+                <p class="fs-4 fw-semibold mb-1">@FormatearEnergia(energiaKwh) kWh</p>
+            }
+            @if (resultado.Cobertura == CoberturaEnergia.Parcial)
+            {
+                <p class="mb-1">Cobertura parcial</p>
+            }
+            else if (resultado.Cobertura == CoberturaEnergia.SinDatosSuficientes)
+            {
+                <p class="mb-1">Sin datos suficientes</p>
+            }
+            else if (resultado.Cobertura == CoberturaEnergia.SinPaneles)
+            {
+                <p class="mb-1">Sin paneles</p>
+            }
+            <p class="small text-body-secondary mb-0">
+                Mediciones simuladas · Consulta del
+                <time datetime="@resultado.CorteLocal.ToString("O", CultureInfo.InvariantCulture)">@resultado.CorteLocal.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture)</time>
+                (hora de Uruguay)
+            </p>
+        </div>
+    </section>
+}
+else if (_errorCarga)
+{
+    <p class="alert alert-warning" role="status">No se pudo consultar la energía estimada de hoy.</p>
+}
+
+@code {
+    [Parameter] public Guid ComponenteId { get; set; }
+    [Parameter] public TipoComponenteEnergia Tipo { get; set; }
+
+    private EnergiaEstimadaDto? _resultado;
+    private bool _errorCarga;
+    private int _consulta;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var consulta = ++_consulta;
+        _resultado = null;
+        _errorCarga = false;
+        try
+        {
+            var resultado = await Servicio.ConsultarHoyAsync(Tipo, ComponenteId);
+            if (consulta == _consulta)
+                _resultado = resultado;
+        }
+        catch (Exception)
+        {
+            Logger.LogWarning("No se pudo cargar la energía estimada. Código: consulta_energia.");
+            if (consulta == _consulta)
+                _errorCarga = true;
+        }
+    }
+
+    private static string FormatearEnergia(decimal energiaKwh)
+    {
+        const decimal minimoVisible = 0.001m;
+        return energiaKwh is > 0 and < minimoVisible
+            ? "< " + minimoVisible.ToString("0.###", CultureInfo.CurrentCulture)
+            : energiaKwh.ToString("0.###", CultureInfo.CurrentCulture);
+    }
+}

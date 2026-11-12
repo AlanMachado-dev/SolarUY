@@ -3,14 +3,17 @@
 @using SolarUY.Application.Monitoreo
 @implements IDisposable
 @inject MonitoreoService Servicio
+@inject ControlPanelService ControlPanel
 @inject NotificacionMedicion Notificacion
 @inject AuthenticationStateProvider Autenticacion
+@inject ILogger<LecturaEnVivo> Logger
 
 <section aria-live="polite">
     @if (_lectura is { } lectura)
     {
         <dl>
-            <dt>Estado</dt><dd>@lectura.Estado</dd>
+            <dt>Estado de control</dt><dd>@lectura.EstadoControl</dd>
+            <dt>Estado de la última medición</dt><dd>@(lectura.FechaUtc.HasValue ? lectura.Estado.ToString() : "Sin mediciones")</dd>
             <dt>Generación actual</dt>
             <dd>
                 @if (lectura.GeneracionActualW is { } potencia)
@@ -32,6 +35,22 @@
             </dd>
             <dt>Fecha de medición</dt><dd>@(lectura.FechaUtc is { } fecha ? $"{fecha:dd/MM/yyyy HH:mm:ss} UTC" : "Aún no hay mediciones")</dd>
         </dl>
+        <AuthorizeView Roles="Administrador">
+            <Authorized>
+                @if (lectura.PuedeCambiarEstado)
+                {
+                    var activar = lectura.EstaDesactivado;
+                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                            @onclick="() => CambiarEstadoAsync(activar)">
+                        @(activar ? "Activar panel" : "Desactivar panel")
+                    </button>
+                }
+                @if (_mensajeControl is not null)
+                {
+                    <p class="mt-2" role="@(_errorControl ? "alert" : "status")">@_mensajeControl</p>
+                }
+            </Authorized>
+        </AuthorizeView>
     }
     else
     {
@@ -45,6 +64,9 @@
     private LecturaPanelDto? _lectura;
     private IDisposable? _suscripcion;
     private bool _cerrado;
+    private string? _mensajeControl;
+    private bool _errorControl;
+    private bool _enviandoOrden;
     private string _mensaje = "Cargando mediciones…";
 
     private static double MaximoEscala(float nominal, float lectura)
@@ -87,6 +109,43 @@
     {
         if (lectura.PanelId == PanelId && (_lectura is null || lectura.EsPosteriorA(_lectura)))
             _lectura = lectura;
+    }
+
+    private async Task CambiarEstadoAsync(bool activar)
+    {
+        if (_enviandoOrden || _cerrado)
+            return;
+
+        _enviandoOrden = true;
+        _mensajeControl = null;
+        try
+        {
+            var usuario = (await Autenticacion.GetAuthenticationStateAsync()).User;
+            var resultado = await ControlPanel.CambiarEstadoAsync(usuario, PanelId, activar);
+            if (resultado.Lectura is { } confirmada)
+                Actualizar(confirmada);
+
+            _errorControl = resultado.Codigo is not (CodigoControlPanel.Actualizado or CodigoControlPanel.SinCambios);
+            _mensajeControl = resultado.Codigo switch
+            {
+                CodigoControlPanel.Actualizado => activar ? "Panel activado." : "Panel desactivado.",
+                CodigoControlPanel.SinCambios => "El panel ya estaba en el estado solicitado.",
+                CodigoControlPanel.AccesoDenegado => "No tenés permiso para cambiar el estado del panel.",
+                CodigoControlPanel.PanelNoEncontrado => "El panel ya no está disponible.",
+                CodigoControlPanel.EstadoNoPermitido => "El estado actual del panel no permite esa acción.",
+                _ => "No se pudo guardar el cambio."
+            };
+        }
+        catch (Exception)
+        {
+            Logger.LogWarning("No se pudo cambiar el estado del panel. Código: control_panel.");
+            _errorControl = true;
+            _mensajeControl = "No se pudo confirmar el cambio. Revisá el estado del panel antes de reintentar.";
+        }
+        finally
+        {
+            _enviandoOrden = false;
+        }
     }
 
     public void Dispose()

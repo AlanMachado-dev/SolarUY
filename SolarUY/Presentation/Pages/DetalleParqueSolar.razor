@@ -2,6 +2,8 @@
 @namespace SolarUY.Presentation.Pages
 @attribute [Authorize]
 @using System.Globalization
+@using SolarUY.Application.Energia
+@using SolarUY.Presentation.Monitoreo
 @inject IParqueSolarService ParqueService
 @inject NavigationManager Navegacion
 @inject ILogger<DetalleParqueSolar> Logger
@@ -29,6 +31,9 @@ else if (_resultado?.Codigo == CodigoConsultaParqueSolar.Exitoso && _resultado.P
         <dt>Ubicación (localidad / dirección)</dt><dd>@parque.Ubicacion</dd>
         <dt>Capacidad total estimada</dt><dd>@parque.CapacidadTotalEstimadaMw.ToString("0.############################", CultureInfo.CurrentCulture) MW</dd>
     </dl>
+    <AuthorizeView Roles="Administrador,Operador">
+        <IndicadorEnergia ComponenteId="parque.ID" Tipo="TipoComponenteEnergia.Parque" />
+    </AuthorizeView>
     <AuthorizeView Roles="Administrador">
         <Authorized>
             <a class="btn btn-primary mb-3" href="@($"/parques-solares/{parque.ID:D}/nodos/nuevo")" data-enhance-nav="false">+ Agregar nodo</a>

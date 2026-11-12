@@ -11,7 +11,13 @@ public sealed class MonitoreoService(IMedicionRepository medicionRepository, INo
             return null;
 
         var medicion = await medicionRepository.ObtenerUltimaAsync(panelId, cancellationToken);
-        return CrearLectura(panel, medicion);
+        return LecturaPanelDto.Desde(panel, medicion);
+    }
+
+    public async Task<bool?> ConsultarHabilitadoAsync(Guid panelId, CancellationToken cancellationToken = default)
+    {
+        var panel = await medicionRepository.ObtenerPanelAsync(panelId, cancellationToken);
+        return panel is null ? null : panel.Estado != EstadoPanel.Desactivado;
     }
 
     public async Task<ResultadoRegistroMedicion> RegistrarAsync(
@@ -34,11 +40,7 @@ public sealed class MonitoreoService(IMedicionRepository medicionRepository, INo
         if (!await medicionRepository.GuardarAsync(medicion, cancellationToken))
             return ResultadoRegistroMedicion.ErrorDePersistencia;
 
-        await notificacion.PublicarAsync(CrearLectura(panel, medicion));
+        await notificacion.PublicarAsync(LecturaPanelDto.Desde(panel, medicion));
         return ResultadoRegistroMedicion.Guardada;
     }
-
-    private static LecturaPanelDto CrearLectura(Panel panel, Medicion? medicion) =>
-        new(panel.ID, medicion?.ID, medicion?.FechaUtc, medicion?.GeneracionActualW,
-            medicion?.Estado ?? panel.Estado, panel.PotenciaNominalW);
 }

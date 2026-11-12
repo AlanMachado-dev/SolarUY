@@ -10,6 +10,11 @@ public sealed class Medicion
 
     private Medicion() { }
 
+    public bool EsCompatibleConControl(EstadoPanel estadoControl) =>
+        estadoControl == EstadoPanel.Desactivado
+            ? Estado == EstadoPanel.Desactivado && GeneracionActualW == 0
+            : Estado != EstadoPanel.Desactivado;
+
     public static Medicion Crear(Panel panel, DateTime fechaUtc, float generacionActualW, EstadoPanel estado)
     {
         ArgumentNullException.ThrowIfNull(panel);
