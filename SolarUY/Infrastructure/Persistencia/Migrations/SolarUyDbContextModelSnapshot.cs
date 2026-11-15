@@ -124,6 +124,48 @@ namespace SolarUY.Infrastructure.Persistencia.Migrations
                     b.ToTable("Sensores", (string)null);
                 });
 
+            modelBuilder.Entity("SolarUY.Domain.Paneles.Mantenimiento", b =>
+                {
+                    b.Property<string>("ID")
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<long>("FechaProgramada")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("FechaRealizada")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("IdPanel")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("char")
+                        .IsFixedLength();
+
+                    b.Property<long?>("InicioProcesadoUtc")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Responsable")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("IdPanel");
+
+                    b.HasIndex("InicioProcesadoUtc", "FechaRealizada", "FechaProgramada");
+
+                    b.ToTable("Mantenimientos", (string)null);
+                });
+
             modelBuilder.Entity("SolarUY.Domain.Paneles.Medicion", b =>
                 {
                     b.Property<string>("ID")
@@ -182,6 +224,11 @@ namespace SolarUY.Infrastructure.Persistencia.Migrations
                     b.Property<float>("PotenciaNominalW")
                         .HasColumnType("float");
 
+                    b.Property<long>("RevisionControl")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
                     b.HasKey("ID");
 
                     b.HasIndex("IdNodo");
@@ -236,6 +283,17 @@ namespace SolarUY.Infrastructure.Persistencia.Migrations
                         .IsRequired();
 
                     b.Navigation("Inversor");
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Paneles.Mantenimiento", b =>
+                {
+                    b.HasOne("SolarUY.Domain.Paneles.Panel", "Panel")
+                        .WithMany("Mantenimientos")
+                        .HasForeignKey("IdPanel")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Panel");
                 });
 
             modelBuilder.Entity("SolarUY.Domain.Paneles.Medicion", b =>
@@ -353,6 +411,11 @@ namespace SolarUY.Infrastructure.Persistencia.Migrations
                         .IsRequired();
 
                     b.Navigation("Paneles");
+                });
+
+            modelBuilder.Entity("SolarUY.Domain.Paneles.Panel", b =>
+                {
+                    b.Navigation("Mantenimientos");
                 });
 
             modelBuilder.Entity("SolarUY.Domain.ParquesSolares.ParqueSolar", b =>

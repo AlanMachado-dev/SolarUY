@@ -4,6 +4,8 @@ namespace SolarUY.Domain.Paneles;
 
 public sealed class Panel
 {
+    private readonly List<Mantenimiento> _mantenimientos = [];
+
     public Guid ID { get; private set; }
     public NombrePanel Nombre { get; private set; } = null!;
     public string Modelo { get; private set; } = string.Empty;
@@ -11,22 +13,80 @@ public sealed class Panel
     public DateTime FechaInstalacion { get; private set; }
     public EstadoPanel Estado { get; private set; }
     public Nodo Nodo { get; private set; } = null!;
-    public float? GeneracionActualW => null;
-    public DateTime? UltimoMantenimiento => null;
+    public bool AdmiteTelemetria => Estado == EstadoPanel.Operativo;
+    public float? GeneracionActualW => AdmiteTelemetria ? null : 0;
+    public IReadOnlyCollection<Mantenimiento> Mantenimientos => _mantenimientos.AsReadOnly();
+    public Mantenimiento? MantenimientoAbierto => _mantenimientos.SingleOrDefault(mantenimiento => !mantenimiento.FechaRealizada.HasValue);
+    public DateTime? UltimoMantenimiento => _mantenimientos.Max(mantenimiento => mantenimiento.FechaRealizada);
 
     private Panel() { }
 
-    public ResultadoCambioEstadoPanel CambiarEstadoOperativo(bool activar)
+    public Mantenimiento ProgramarMantenimiento(string? tipo, DateTime fechaProgramadaUtc, string? responsable,
+        DateTime ahoraUtc)
     {
-        if (Estado is not (EstadoPanel.Operativo or EstadoPanel.Desactivado))
+        ValidarInstante(ahoraUtc);
+        if (MantenimientoAbierto is not null)
+            throw new DatosPanelInvalidosException(nameof(Mantenimientos), "El panel ya tiene un mantenimiento sin finalizar.");
+
+        var mantenimiento = Mantenimiento.Programar(this, tipo, fechaProgramadaUtc, responsable);
+        _mantenimientos.Add(mantenimiento);
+        IniciarMantenimientoVencido(ahoraUtc);
+        return mantenimiento;
+    }
+
+    public bool IniciarMantenimientoVencido(DateTime ahoraUtc)
+    {
+        ValidarInstante(ahoraUtc);
+        if (MantenimientoAbierto?.Iniciar(ahoraUtc) != true)
+            return false;
+
+        if (Estado == EstadoPanel.Operativo)
+            Estado = EstadoPanel.EnMantenimiento;
+
+        return true;
+    }
+
+    public ResultadoCambioEstadoPanel FinalizarMantenimiento(Guid mantenimientoId, DateTime ahoraUtc, string? observaciones)
+    {
+        ValidarInstante(ahoraUtc);
+        var mantenimiento = _mantenimientos.Find(registro => registro.ID == mantenimientoId);
+        if (mantenimiento is null)
             return ResultadoCambioEstadoPanel.NoPermitido;
 
-        var destino = activar ? EstadoPanel.Operativo : EstadoPanel.Desactivado;
+        var resultado = mantenimiento.Finalizar(ahoraUtc, observaciones);
+        if (resultado == ResultadoCambioEstadoPanel.Actualizado && Estado == EstadoPanel.EnMantenimiento)
+            Estado = EstadoPanel.Operativo;
+
+        return resultado;
+    }
+
+    public ResultadoCambioEstadoPanel SimularFalla() => CambiarEstado(EstadoPanel.EnFalla);
+    public ResultadoCambioEstadoPanel Desactivar() => CambiarEstado(EstadoPanel.Desactivado);
+    public ResultadoCambioEstadoPanel SimularArreglo() => RecuperarDesde(EstadoPanel.EnFalla);
+    public ResultadoCambioEstadoPanel Activar() => RecuperarDesde(EstadoPanel.Desactivado);
+
+    private ResultadoCambioEstadoPanel RecuperarDesde(EstadoPanel estadoDeOrigen)
+    {
+        var destino = MantenimientoAbierto?.EnCurso == true ? EstadoPanel.EnMantenimiento : EstadoPanel.Operativo;
+        if (Estado == destino)
+            return ResultadoCambioEstadoPanel.SinCambios;
+
+        return Estado == estadoDeOrigen ? CambiarEstado(destino) : ResultadoCambioEstadoPanel.NoPermitido;
+    }
+
+    private ResultadoCambioEstadoPanel CambiarEstado(EstadoPanel destino)
+    {
         if (Estado == destino)
             return ResultadoCambioEstadoPanel.SinCambios;
 
         Estado = destino;
         return ResultadoCambioEstadoPanel.Actualizado;
+    }
+
+    private static void ValidarInstante(DateTime ahoraUtc)
+    {
+        if (ahoraUtc == default || ahoraUtc.Kind != DateTimeKind.Utc)
+            throw new ArgumentException("El instante de control debe estar en UTC.", nameof(ahoraUtc));
     }
 
     internal static Panel Crear(string? nombre, string? modelo, float potenciaNominalW,

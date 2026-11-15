@@ -117,7 +117,11 @@ static async Task EjecutarAsync(string[] argumentos)
         }).Build();
         using var plazo = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await hub.StartAsync(plazo.Token);
-        await hub.InvokeAsync("Registrar", new RegistrarMedicionDto(raiz.GetProperty("panel").GetGuid(), 345, EstadoPanel.Operativo), plazo.Token);
+        var panelId = raiz.GetProperty("panel").GetGuid();
+        var permiso = await hub.InvokeAsync<PermisoTransmisionDto>("AsociarSensor", panelId, plazo.Token);
+        var registro = await hub.InvokeAsync<string>("Registrar", new MuestraSensorDto(panelId, 345, permiso.RevisionControl), plazo.Token);
+        if (registro != nameof(ResultadoRegistroMedicion.Guardada))
+            throw new InvalidOperationException("El servidor rechazó la lectura de Long Polling.");
         await hub.StopAsync(plazo.Token);
         Console.WriteLine("SignalR Long Polling negoció y registró una lectura por el balanceador.");
         return;

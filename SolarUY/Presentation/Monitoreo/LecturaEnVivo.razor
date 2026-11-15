@@ -1,12 +1,14 @@
 @namespace SolarUY.Presentation.Monitoreo
+@using Microsoft.JSInterop
 @using Radzen.Blazor
 @using SolarUY.Application.Monitoreo
-@implements IDisposable
+@implements IAsyncDisposable
 @inject MonitoreoService Servicio
 @inject ControlPanelService ControlPanel
 @inject NotificacionMedicion Notificacion
 @inject AuthenticationStateProvider Autenticacion
 @inject ILogger<LecturaEnVivo> Logger
+@inject IJSRuntime JS
 
 <section aria-live="polite">
     @if (_lectura is { } lectura)
@@ -16,7 +18,7 @@
             <dt>Estado de la última medición</dt><dd>@(lectura.FechaUtc.HasValue ? lectura.Estado.ToString() : "Sin mediciones")</dd>
             <dt>Generación actual</dt>
             <dd>
-                @if (lectura.GeneracionActualW is { } potencia)
+                @if (lectura.PotenciaActualW is { } potencia)
                 {
                     var maximo = MaximoEscala(lectura.PotenciaNominalW, potencia);
                     <div aria-hidden="true">
@@ -34,23 +36,46 @@
                 }
             </dd>
             <dt>Fecha de medición</dt><dd>@(lectura.FechaUtc is { } fecha ? $"{fecha:dd/MM/yyyy HH:mm:ss} UTC" : "Aún no hay mediciones")</dd>
+            @if (lectura.Mantenimiento is { Estado: EstadoMantenimiento.Pendiente } mantenimiento)
+            {
+                <dt>Mantenimiento programado</dt>
+                <dd>@HoraDeUruguay(mantenimiento.FechaProgramadaUtc) (hora de Uruguay)</dd>
+            }
         </dl>
-        <AuthorizeView Roles="Administrador">
-            <Authorized>
-                @if (lectura.PuedeCambiarEstado)
+
+        @if (_acciones is { } acciones)
+        {
+            <div class="d-flex flex-wrap gap-2">
+                @if (acciones.OrdenFalla is { } falla)
                 {
-                    var activar = lectura.EstaDesactivado;
                     <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
-                            @onclick="() => CambiarEstadoAsync(activar)">
-                        @(activar ? "Activar panel" : "Desactivar panel")
+                            @onclick="() => EnviarOrdenAsync(falla)">
+                        @(falla is SimularArregloPanel ? "Simular Arreglo" : "Simular Falla")
                     </button>
                 }
-                @if (_mensajeControl is not null)
+                @if (acciones.OrdenActivacion is { } activacion)
                 {
-                    <p class="mt-2" role="@(_errorControl ? "alert" : "status")">@_mensajeControl</p>
+                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                            @onclick="() => EnviarOrdenAsync(activacion)">
+                        @(activacion is ActivarPanel ? "Activar Panel" : "Desactivar Panel")
+                    </button>
                 }
-            </Authorized>
-        </AuthorizeView>
+                @if (acciones.PuedeProgramar)
+                {
+                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                            @onclick="() => AbrirFormulario(null)">Programar Mantenimiento</button>
+                }
+                @if (acciones.MantenimientoParaFinalizar is { } mantenimientoId)
+                {
+                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                            @onclick="() => AbrirFormulario(mantenimientoId)">Finalizar Mantenimiento</button>
+                }
+            </div>
+        }
+        @if (_mensajeControl is not null && !_formularioAbierto)
+        {
+            <p class="mt-2" role="@(_errorControl ? "alert" : "status")">@_mensajeControl</p>
+        }
     }
     else
     {
@@ -58,16 +83,67 @@
     }
 </section>
 
+<dialog @ref="_dialogo" class="border rounded shadow p-4" style="width: min(30rem, calc(100% - 2rem));"
+        aria-labelledby="titulo-mantenimiento" @onkeydown="ProcesarTecla">
+    <form @onsubmit="GuardarFormularioAsync" @onsubmit:preventDefault>
+        <h2 id="titulo-mantenimiento" class="h5 mb-3">@(_mantenimientoParaCerrar.HasValue ? "Finalizar Mantenimiento" : "Programar Mantenimiento")</h2>
+        <fieldset disabled="@_enviandoOrden">
+            @if (_mantenimientoParaCerrar.HasValue)
+            {
+                <label for="observaciones-mantenimiento" class="form-label">Observaciones (opcional)</label>
+                <textarea id="observaciones-mantenimiento" class="form-control" rows="3" @bind="_observaciones" @bind:event="oninput"></textarea>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label for="tipo-mantenimiento" class="form-label">Tipo</label>
+                    <input id="tipo-mantenimiento" class="form-control" required @bind="_tipo" @bind:event="oninput" />
+                </div>
+                <div class="mb-3">
+                    <label for="fecha-mantenimiento" class="form-label">Fecha Programada (hora de Uruguay)</label>
+                    <input id="fecha-mantenimiento" class="form-control" type="datetime-local" step="1" required @bind="_fechaLocal" />
+                </div>
+                <div>
+                    <label for="responsable-mantenimiento" class="form-label">Responsable</label>
+                    <input id="responsable-mantenimiento" class="form-control" required @bind="_responsable" @bind:event="oninput" />
+                </div>
+            }
+        </fieldset>
+        @if (_errorControl && _mensajeControl is not null)
+        {
+            <p class="mt-3 text-danger" role="alert">@_mensajeControl</p>
+        }
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-outline-secondary" disabled="@_enviandoOrden" @onclick="CerrarFormulario">Cancelar</button>
+            <button type="submit" class="btn btn-primary" disabled="@_enviandoOrden">
+                @(_mantenimientoParaCerrar.HasValue ? "Finalizar" : "Programar")
+            </button>
+        </div>
+    </form>
+</dialog>
+
 @code {
     [Parameter] public Guid PanelId { get; set; }
 
+    private static readonly TimeZoneInfo Uruguay = TimeZoneInfo.FindSystemTimeZoneById("America/Montevideo");
     private LecturaPanelDto? _lectura;
+    private AccionesPanelDto? _acciones;
+    private System.Security.Claims.ClaimsPrincipal? _usuario;
     private IDisposable? _suscripcion;
     private bool _cerrado;
     private string? _mensajeControl;
     private bool _errorControl;
     private bool _enviandoOrden;
     private string _mensaje = "Cargando mediciones…";
+    private ElementReference _dialogo;
+    private IJSObjectReference? _modulo;
+    private bool _formularioAbierto;
+    private bool _actualizarDialogo;
+    private Guid? _mantenimientoParaCerrar;
+    private string? _tipo;
+    private DateTime? _fechaLocal;
+    private string? _responsable;
+    private string? _observaciones;
 
     private static double MaximoEscala(float nominal, float lectura)
     {
@@ -75,15 +151,17 @@
         return Math.Max(referencia, lectura);
     }
 
+    private static string HoraDeUruguay(DateTime fecha) =>
+        TimeZoneInfo.ConvertTimeFromUtc(fecha, Uruguay).ToString("dd/MM/yyyy HH:mm:ss");
+
     protected override async Task OnInitializedAsync()
     {
-        var usuario = (await Autenticacion.GetAuthenticationStateAsync()).User;
+        _usuario = (await Autenticacion.GetAuthenticationStateAsync()).User;
         if (_cerrado)
             return;
-
         try
         {
-            _suscripcion = Notificacion.Suscribir(usuario, PanelId, RecibirAsync);
+            _suscripcion = Notificacion.Suscribir(_usuario, PanelId, RecibirAsync);
             var lectura = await Servicio.ConsultarAsync(PanelId);
             if (!_cerrado && lectura is not null)
                 Actualizar(lectura);
@@ -94,6 +172,17 @@
         {
             _mensaje = "Acceso denegado.";
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool primerRender)
+    {
+        if (!_actualizarDialogo || _cerrado)
+            return;
+
+        _actualizarDialogo = false;
+        _modulo ??= await JS.InvokeAsync<IJSObjectReference>("import", "./monitoreoDialogo.js");
+        if (!_cerrado)
+            await _modulo.InvokeVoidAsync("mostrar", _dialogo, _formularioAbierto);
     }
 
     private Task RecibirAsync(LecturaPanelDto lectura) => InvokeAsync(() =>
@@ -108,10 +197,50 @@
     private void Actualizar(LecturaPanelDto lectura)
     {
         if (lectura.PanelId == PanelId && (_lectura is null || lectura.EsPosteriorA(_lectura)))
+        {
             _lectura = lectura;
+            _acciones = ControlPanelService.ObtenerAcciones(_usuario!, lectura);
+        }
     }
 
-    private async Task CambiarEstadoAsync(bool activar)
+    private void AbrirFormulario(Guid? mantenimientoId)
+    {
+        _mantenimientoParaCerrar = mantenimientoId;
+        _tipo = _responsable = _observaciones = null;
+        _fechaLocal = null;
+        _mensajeControl = null;
+        _formularioAbierto = _actualizarDialogo = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        _formularioAbierto = false;
+        _actualizarDialogo = true;
+    }
+
+    private void ProcesarTecla(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape" && !_enviandoOrden)
+            CerrarFormulario();
+    }
+
+    private Task GuardarFormularioAsync()
+    {
+        if (_mantenimientoParaCerrar is { } mantenimientoId)
+            return EnviarOrdenAsync(new FinalizarMantenimientoDto(mantenimientoId, _observaciones));
+
+        if (_fechaLocal is not { } fecha || fecha == default || Uruguay.IsInvalidTime(fecha))
+        {
+            _errorControl = true;
+            _mensajeControl = "Ingresá una fecha y hora válidas.";
+            return Task.CompletedTask;
+        }
+
+        var utc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(fecha, DateTimeKind.Unspecified), Uruguay);
+        return EnviarOrdenAsync(new ProgramarMantenimientoDto(_tipo, utc, _responsable));
+    }
+
+    private async Task EnviarOrdenAsync(OrdenControlPanel orden)
     {
         if (_enviandoOrden || _cerrado)
             return;
@@ -121,24 +250,27 @@
         try
         {
             var usuario = (await Autenticacion.GetAuthenticationStateAsync()).User;
-            var resultado = await ControlPanel.CambiarEstadoAsync(usuario, PanelId, activar);
+            var resultado = await ControlPanel.EjecutarAsync(usuario, PanelId, orden);
             if (resultado.Lectura is { } confirmada)
                 Actualizar(confirmada);
 
             _errorControl = resultado.Codigo is not (CodigoControlPanel.Actualizado or CodigoControlPanel.SinCambios);
             _mensajeControl = resultado.Codigo switch
             {
-                CodigoControlPanel.Actualizado => activar ? "Panel activado." : "Panel desactivado.",
-                CodigoControlPanel.SinCambios => "El panel ya estaba en el estado solicitado.",
-                CodigoControlPanel.AccesoDenegado => "No tenés permiso para cambiar el estado del panel.",
+                CodigoControlPanel.Actualizado => Confirmacion(orden),
+                CodigoControlPanel.SinCambios => "La orden ya estaba aplicada.",
+                CodigoControlPanel.AccesoDenegado => "No tenés permiso para realizar esta acción.",
                 CodigoControlPanel.PanelNoEncontrado => "El panel ya no está disponible.",
                 CodigoControlPanel.EstadoNoPermitido => "El estado actual del panel no permite esa acción.",
+                CodigoControlPanel.DatosInvalidos => resultado.Error,
                 _ => "No se pudo guardar el cambio."
             };
+            if (!_errorControl && _formularioAbierto)
+                CerrarFormulario();
         }
         catch (Exception)
         {
-            Logger.LogWarning("No se pudo cambiar el estado del panel. Código: control_panel.");
+            Logger.LogWarning("No se pudo confirmar la orden del panel. Código: control_panel.");
             _errorControl = true;
             _mensajeControl = "No se pudo confirmar el cambio. Revisá el estado del panel antes de reintentar.";
         }
@@ -148,9 +280,25 @@
         }
     }
 
-    public void Dispose()
+    private static string Confirmacion(OrdenControlPanel orden) => orden switch
+    {
+        ProgramarMantenimientoDto => "Mantenimiento programado.",
+        FinalizarMantenimientoDto => "Mantenimiento finalizado.",
+        SimularFallaPanel => "Falla simulada.",
+        SimularArregloPanel => "Arreglo simulado.",
+        DesactivarPanel => "Panel desactivado.",
+        ActivarPanel => "Panel activado.",
+        _ => "Cambio confirmado."
+    };
+
+    public async ValueTask DisposeAsync()
     {
         _cerrado = true;
         _suscripcion?.Dispose();
+        if (_modulo is not null)
+        {
+            try { await _modulo.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
     }
 }

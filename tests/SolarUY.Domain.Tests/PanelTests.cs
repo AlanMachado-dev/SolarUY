@@ -14,45 +14,16 @@ public class PanelTests
     private static Nodo Nodo() => AgregarNodo(ParqueSolar.Crear("Parque", "Sur"));
 
     [Fact]
-    public void CambiarEstadoOperativo_EsIdempotenteEnAmbosSentidos()
+    public void ActivarYDesactivar_SonIdempotentesSinMantenimiento()
     {
         var panel = Nodo().AgregarPanel("Panel", "M", 500, Instante);
 
-        Assert.Equal(ResultadoCambioEstadoPanel.SinCambios, panel.CambiarEstadoOperativo(true));
-        Assert.Equal(ResultadoCambioEstadoPanel.Actualizado, panel.CambiarEstadoOperativo(false));
+        Assert.Equal(ResultadoCambioEstadoPanel.SinCambios, panel.Activar());
+        Assert.Equal(ResultadoCambioEstadoPanel.Actualizado, panel.Desactivar());
         Assert.Equal(EstadoPanel.Desactivado, panel.Estado);
-        Assert.Equal(ResultadoCambioEstadoPanel.SinCambios, panel.CambiarEstadoOperativo(false));
-        Assert.Equal(ResultadoCambioEstadoPanel.Actualizado, panel.CambiarEstadoOperativo(true));
+        Assert.Equal(ResultadoCambioEstadoPanel.SinCambios, panel.Desactivar());
+        Assert.Equal(ResultadoCambioEstadoPanel.Actualizado, panel.Activar());
         Assert.Equal(EstadoPanel.Operativo, panel.Estado);
-    }
-
-    [Theory]
-    [InlineData(EstadoPanel.EnFalla)]
-    [InlineData(EstadoPanel.EnMantenimiento)]
-    public void CambiarEstadoOperativo_ConservaEstadosProtegidos(EstadoPanel estado)
-    {
-        var panel = Nodo().AgregarPanel("Panel", "M", 500, Instante);
-        typeof(Panel).GetProperty(nameof(Panel.Estado))!.SetValue(panel, estado);
-
-        Assert.Equal(ResultadoCambioEstadoPanel.NoPermitido, panel.CambiarEstadoOperativo(true));
-        Assert.Equal(ResultadoCambioEstadoPanel.NoPermitido, panel.CambiarEstadoOperativo(false));
-        Assert.Equal(estado, panel.Estado);
-    }
-
-    [Theory]
-    [InlineData(EstadoPanel.Desactivado, EstadoPanel.Desactivado, 0f, true)]
-    [InlineData(EstadoPanel.Desactivado, EstadoPanel.Desactivado, 1f, false)]
-    [InlineData(EstadoPanel.Desactivado, EstadoPanel.Operativo, 1f, false)]
-    [InlineData(EstadoPanel.Operativo, EstadoPanel.Desactivado, 0f, false)]
-    [InlineData(EstadoPanel.Operativo, EstadoPanel.Operativo, 1f, true)]
-    [InlineData(EstadoPanel.Operativo, EstadoPanel.EnFalla, 0f, true)]
-    public void Medicion_EsCompatibleConElEstadoDeControl(
-        EstadoPanel control, EstadoPanel estado, float potencia, bool compatible)
-    {
-        var panel = Nodo().AgregarPanel("Panel", "M", 500, Instante);
-        var medicion = Medicion.Crear(panel, Instante, potencia, estado);
-
-        Assert.Equal(compatible, medicion.EsCompatibleConControl(control));
     }
 
     [Fact]

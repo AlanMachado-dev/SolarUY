@@ -6,6 +6,8 @@ namespace SolarUY.Infrastructure.Persistencia;
 
 public sealed class PanelConfiguration : IEntityTypeConfiguration<Panel>
 {
+    internal const string RevisionControl = "RevisionControl";
+
     public void Configure(EntityTypeBuilder<Panel> builder)
     {
         builder.ToTable("Paneles");
@@ -22,6 +24,8 @@ public sealed class PanelConfiguration : IEntityTypeConfiguration<Panel>
         builder.Property(panel => panel.FechaInstalacion).HasColumnType("datetime(0)")
             .HasConversion(fecha => fecha.ToUniversalTime(), fecha => DateTime.SpecifyKind(fecha, DateTimeKind.Utc));
         builder.Property(panel => panel.Estado).HasConversion<int>().IsRequired();
+        builder.Property<long>(RevisionControl).HasDefaultValue(0L);
+        builder.Ignore(panel => panel.MantenimientoAbierto);
         builder.Ignore(panel => panel.GeneracionActualW);
         builder.Ignore(panel => panel.UltimoMantenimiento);
         builder.OwnsOne(panel => panel.Nombre, nombre =>

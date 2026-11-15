@@ -1,46 +1,24 @@
-using SolarUY.Domain.Paneles;
-
 namespace SolarUY.Application.Monitoreo;
 
 public sealed class MonitoreoService(IMedicionRepository medicionRepository, INotificacionMedicion notificacion)
 {
-    public async Task<LecturaPanelDto?> ConsultarAsync(Guid panelId, CancellationToken cancellationToken = default)
-    {
-        var panel = await medicionRepository.ObtenerPanelAsync(panelId, cancellationToken);
-        if (panel is null)
-            return null;
+    public Task<LecturaPanelDto?> ConsultarAsync(Guid panelId, CancellationToken cancellationToken = default) =>
+        medicionRepository.ConsultarAsync(panelId, cancellationToken);
 
-        var medicion = await medicionRepository.ObtenerUltimaAsync(panelId, cancellationToken);
-        return LecturaPanelDto.Desde(panel, medicion);
+    public async Task<PermisoTransmisionDto?> ConsultarTransmisionAsync(Guid panelId,
+        CancellationToken cancellationToken = default)
+    {
+        var confirmada = await ConsultarAsync(panelId, cancellationToken);
+        return confirmada is null ? null : new(confirmada.TelemetriaHabilitada, confirmada.RevisionControl);
     }
 
-    public async Task<bool?> ConsultarHabilitadoAsync(Guid panelId, CancellationToken cancellationToken = default)
+    public async Task<ResultadoRegistroMedicion> RegistrarAsync(MuestraSensorDto entrada,
+        CancellationToken cancellationToken = default)
     {
-        var panel = await medicionRepository.ObtenerPanelAsync(panelId, cancellationToken);
-        return panel is null ? null : panel.Estado != EstadoPanel.Desactivado;
-    }
+        var resultado = await medicionRepository.AdmitirAsync(entrada, cancellationToken);
+        if (resultado.LecturaConfirmada is { } lectura)
+            await notificacion.PublicarAsync(lectura);
 
-    public async Task<ResultadoRegistroMedicion> RegistrarAsync(
-        RegistrarMedicionDto entrada, CancellationToken cancellationToken = default)
-    {
-        var panel = await medicionRepository.ObtenerPanelAsync(entrada.PanelId, cancellationToken);
-        if (panel is null)
-            return ResultadoRegistroMedicion.PanelNoEncontrado;
-
-        Medicion medicion;
-        try
-        {
-            medicion = Medicion.Crear(panel, DateTime.UtcNow, entrada.GeneracionActualW, entrada.Estado);
-        }
-        catch (ArgumentException)
-        {
-            return ResultadoRegistroMedicion.LecturaInvalida;
-        }
-
-        if (!await medicionRepository.GuardarAsync(medicion, cancellationToken))
-            return ResultadoRegistroMedicion.ErrorDePersistencia;
-
-        await notificacion.PublicarAsync(LecturaPanelDto.Desde(panel, medicion));
-        return ResultadoRegistroMedicion.Guardada;
+        return resultado.Codigo;
     }
 }

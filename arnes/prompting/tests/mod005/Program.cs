@@ -46,7 +46,7 @@ try
             Medicion.Crear(panelCero, instante, 0, EstadoPanel.EnFalla));
         await contexto.SaveChangesAsync();
 
-        var repositorio = new MedicionRepository(new FabricaContexto(opciones.Options));
+        var repositorio = new MedicionRepository(new FabricaContexto(opciones.Options), TimeProvider.System);
         var nodos = new NodoService(new NodoRepository(contexto), new ParqueSolarRepository(contexto),
             new Operador(), repositorio);
         var detalle = await nodos.ObtenerPorIdAsync(nodo.ID);
