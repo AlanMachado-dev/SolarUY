@@ -82,9 +82,9 @@ async function verificar() {
         await estado(admin, 'Último envío confirmado.');
         assert.ok(conexiones.some(socket => !socket.isClosed()));
         await estado(admin, 'Operativo');
-        const datos = admin.getByText(/^[\d.,]+ W$/).first();
+        const datos = admin.locator('.lectura-valor');
         const potencia = await datos.textContent();
-        await admin.waitForFunction(anterior => [...document.querySelectorAll('dd span')].some(
+        await admin.waitForFunction(anterior => [...document.querySelectorAll('.lectura-valor')].some(
             span => /^\d.* W$/.test(span.textContent) && span.textContent !== anterior), potencia, { timeout: 26000 });
         await estado(admin, 'Operativo');
         console.log('OK Navegador: aumenta el historial operativo con potencia variable.');
@@ -110,7 +110,8 @@ async function verificar() {
         const detalle = await admin.context().newPage();
         await detalle.goto(origenA + '/nodos/' + nodoId);
         await detalle.getByText('Último mantenimiento', { exact: true }).first().waitFor();
-        assert.ok(await detalle.locator('dd').filter({ hasText: /\d{2}\/\d{2}\/\d{4}.*UTC/ }).count() > 0);
+        const ultimaFecha = detalle.locator('dt:text-is("Ultimo mantenimiento") + dd').first();
+        assert.match((await ultimaFecha.textContent()).trim(), /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/);
         await detalle.close();
         console.log('OK Navegador: cierre por Operador, fecha de servidor, observaciones y reconexión.');
 

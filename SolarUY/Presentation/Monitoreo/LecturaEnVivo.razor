@@ -18,7 +18,7 @@
             <div class="lectura-principal">
                 <div>
                     <div aria-live="polite">
-                        @if (lectura.GeneracionActualW is { } valor)
+                        @if (lectura.PotenciaActualW is { } valor)
                         {
                             <p class="lectura-valor">@FormatoSolar.Vatios(valor) <span>W</span></p>
                         }
@@ -38,7 +38,7 @@
                         }
                     </p>
                 </div>
-                @if (lectura.GeneracionActualW is { } potencia)
+                @if (lectura.PotenciaActualW is { } potencia)
                 {
                     var maximo = MaximoEscala(lectura.PotenciaNominalW, potencia);
                     <div class="lectura-medidor" aria-hidden="true">
@@ -48,60 +48,68 @@
                             </RadzenRadialGaugeScale>
                         </RadzenRadialGauge>
                     </div>
-                    <span>@potencia W</span>
-                }
-                else
-                {
-                    <span>No disponible</span>
-                }
-            </dd>
-            <dt>Fecha de medición</dt><dd>@(lectura.FechaUtc is { } fecha ? $"{fecha:dd/MM/yyyy HH:mm:ss} UTC" : "Aún no hay mediciones")</dd>
-            @if (lectura.Mantenimiento is { Estado: EstadoMantenimiento.Pendiente } mantenimiento)
-            {
-                <dt>Mantenimiento programado</dt>
-                <dd>@HoraDeUruguay(mantenimiento.FechaProgramadaUtc) (hora de Uruguay)</dd>
-            }
-        </dl>
-
-        @if (_acciones is { } acciones)
-        {
-            <div class="d-flex flex-wrap gap-2">
-                @if (acciones.OrdenFalla is { } falla)
-                {
-                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
-                            @onclick="() => EnviarOrdenAsync(falla)">
-                        @(falla is SimularArregloPanel ? "Simular Arreglo" : "Simular Falla")
-                    </button>
-                }
-                @if (acciones.OrdenActivacion is { } activacion)
-                {
-                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
-                            @onclick="() => EnviarOrdenAsync(activacion)">
-                        @(activacion is ActivarPanel ? "Activar Panel" : "Desactivar Panel")
-                    </button>
-                }
-                @if (acciones.PuedeProgramar)
-                {
-                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
-                            @onclick="() => AbrirFormulario(null)">Programar Mantenimiento</button>
-                }
-                @if (acciones.MantenimientoParaFinalizar is { } mantenimientoId)
-                {
-                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
-                            @onclick="() => AbrirFormulario(mantenimientoId)">Finalizar Mantenimiento</button>
                 }
             </div>
+
+            <dl class="lectura-estados">
+                <div>
+                    <dt>Estado de control</dt>
+                    <dd>@lectura.EstadoControl</dd>
+                </div>
+                <div>
+                    <dt>Estado de la última medición</dt>
+                    <dd>@(lectura.FechaUtc.HasValue ? lectura.Estado.ToString() : "Sin mediciones")</dd>
+                </div>
+                @if (lectura.Mantenimiento is { Estado: EstadoMantenimiento.Pendiente } mantenimiento)
+                {
+                    <div>
+                        <dt>Mantenimiento programado</dt>
+                        <dd>@FormatoSolar.FechaUruguay(mantenimiento.FechaProgramadaUtc) (hora de Uruguay)</dd>
+                    </div>
+                }
+            </dl>
+
+            @if (_acciones is { } acciones)
+            {
+                <div class="d-flex flex-wrap gap-2">
+                    @if (acciones.OrdenFalla is { } falla)
+                    {
+                        <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                                @onclick="() => EnviarOrdenAsync(falla)">
+                            @(falla is SimularArregloPanel ? "Simular Arreglo" : "Simular Falla")
+                        </button>
+                    }
+                    @if (acciones.OrdenActivacion is { } activacion)
+                    {
+                        <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                                @onclick="() => EnviarOrdenAsync(activacion)">
+                            @(activacion is ActivarPanel ? "Activar Panel" : "Desactivar Panel")
+                        </button>
+                    }
+                    @if (acciones.PuedeProgramar)
+                    {
+                        <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                                @onclick="() => AbrirFormulario(null)">Programar Mantenimiento</button>
+                    }
+                    @if (acciones.MantenimientoParaFinalizar is { } mantenimientoId)
+                    {
+                        <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                                @onclick="() => AbrirFormulario(mantenimientoId)">Finalizar Mantenimiento</button>
+                    }
+                </div>
+            }
+            @if (_mensajeControl is not null && !_formularioAbierto)
+            {
+                <p class="mt-2" role="@(_errorControl ? "alert" : "status")">@_mensajeControl</p>
+            }
         }
-        @if (_mensajeControl is not null && !_formularioAbierto)
+        else
         {
-            <p class="mt-2" role="@(_errorControl ? "alert" : "status")">@_mensajeControl</p>
+            <p class="mb-0" role="status">@_mensaje</p>
         }
-    }
-    else
-    {
-        <p>@_mensaje</p>
-    }
+    </div>
 </section>
+
 
 <dialog @ref="_dialogo" class="border rounded shadow p-4" style="width: min(30rem, calc(100% - 2rem));"
         aria-labelledby="titulo-mantenimiento" @onkeydown="ProcesarTecla">
@@ -170,9 +178,6 @@
         var referencia = float.IsFinite(nominal) && nominal > 0 ? nominal : 1;
         return Math.Max(referencia, lectura);
     }
-
-    private static string HoraDeUruguay(DateTime fecha) =>
-        TimeZoneInfo.ConvertTimeFromUtc(fecha, Uruguay).ToString("dd/MM/yyyy HH:mm:ss");
 
     protected override async Task OnInitializedAsync()
     {

@@ -49,17 +49,34 @@ await renderizador.Dispatcher.InvokeAsync(async () =>
         "Lectura ausente sin valor ni medidor");
 
     var sinGeneracion = Medicion.Crear(panel, instante, 0, EstadoPanel.EnFalla);
-    await notificacion.PublicarAsync(LecturaPanelDto.Desde(panel, sinGeneracion));
+    await notificacion.PublicarAsync(LecturaPanelDto.Desde(panel, sinGeneracion, 0));
     html = WebUtility.HtmlDecode(vista.ToHtmlString());
     Verificar(TextoVisible(html).Contains("0 W") && html.Contains("15/11/2026 23:05:00") && html.Contains("rz-gauge"),
         "Lectura de 0 W con medidor y cambio de fecha local");
 
     var conGeneracion = Medicion.Crear(panel, instante.AddSeconds(20), 532.126f, EstadoPanel.Operativo);
-    await notificacion.PublicarAsync(LecturaPanelDto.Desde(panel, conGeneracion));
+    await notificacion.PublicarAsync(LecturaPanelDto.Desde(panel, conGeneracion, 0));
     html = WebUtility.HtmlDecode(vista.ToHtmlString());
     Verificar(TextoVisible(html).Contains("532,13 W") && !html.Contains("UTC"),
         "Lectura posterior actualizada con coma decimal");
-    Verificar(!html.Contains("Desactivar panel"), "Operador sin controles de activación");
+    var mantenimiento = new MantenimientoPanelDto(Guid.NewGuid(), "Limpieza", instante, "Técnico", EstadoMantenimiento.Pendiente);
+    var programada = LecturaPanelDto.Desde(panel, conGeneracion, 1) with { Mantenimiento = mantenimiento };
+    await notificacion.PublicarAsync(programada);
+    html = WebUtility.HtmlDecode(vista.ToHtmlString());
+    Verificar(html.Contains("Mantenimiento programado") && html.Contains("15/11/2026 23:05:00 (hora de Uruguay)"),
+        "Mantenimiento programado con hora local");
+
+    var enMantenimiento = programada with
+    {
+        EstadoControl = EstadoPanel.EnMantenimiento,
+        RevisionControl = 2,
+        Mantenimiento = mantenimiento with { Estado = EstadoMantenimiento.EnCurso }
+    };
+    await notificacion.PublicarAsync(enMantenimiento);
+    html = WebUtility.HtmlDecode(vista.ToHtmlString());
+    Verificar(TextoVisible(html).Contains("0 W") && !html.Contains("532,13") && html.Contains("Finalizar Mantenimiento"),
+        "Operador ve 0 W durante mantenimiento y puede finalizarlo");
+    Verificar(!html.Contains("Desactivar Panel") && !html.Contains("Simular Falla"), "Operador sin controles de activación");
 });
 
 static string TextoVisible(string html) => Regex.Replace(html, "<[^>]+>", "");
@@ -88,20 +105,22 @@ sealed class JsVisual : IJSRuntime
 
 sealed class MedicionesVisuales(Panel panel) : IMedicionRepository, IControlPanelRepository
 {
-    public Task<Panel?> ObtenerPanelAsync(Guid panelId, CancellationToken cancellationToken) =>
-        Task.FromResult<Panel?>(panelId == panel.ID ? panel : null);
-
-    public Task<Medicion?> ObtenerUltimaAsync(Guid panelId, CancellationToken cancellationToken) =>
-        Task.FromResult<Medicion?>(null);
+    public Task<LecturaPanelDto?> ConsultarAsync(Guid panelId, CancellationToken cancellationToken) =>
+        Task.FromResult<LecturaPanelDto?>(panelId == panel.ID ? LecturaPanelDto.Desde(panel, null, 0) : null);
 
     public Task<IReadOnlyDictionary<Guid, Medicion>> ObtenerUltimasAsync(
         IReadOnlyCollection<Guid> panelIds, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
-    public Task<ResultadoControlPanel> CambiarEstadoAsync(
-        Guid panelId, bool activar, CancellationToken cancellationToken) =>
+    public Task<ResultadoAdmisionMedicion> AdmitirAsync(MuestraSensorDto muestra, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
-    public Task<bool> GuardarAsync(Medicion medicion, CancellationToken cancellationToken) =>
+    public Task<ResultadoControlPanel> EjecutarAsync(Guid panelId, OrdenControlPanel orden, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<Guid>> BuscarVencidosAsync(DateTime ahoraUtc, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
+    public Task<ResultadoControlPanel> IniciarVencidoAsync(Guid panelId, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 }
