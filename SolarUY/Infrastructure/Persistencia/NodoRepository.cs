@@ -16,7 +16,9 @@ public sealed class NodoRepository : INodoRepository
 
     public Task<Nodo?> ObtenerPorIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         _context.Nodos.AsNoTracking()
-            .Include(nodo => nodo.Paneles)
+            .Include(nodo => nodo.Paneles).ThenInclude(panel => panel.Mantenimientos
+                .Where(mantenimiento => mantenimiento.FechaRealizada != null)
+                .OrderByDescending(mantenimiento => mantenimiento.FechaRealizada).Take(1))
             .Include(nodo => nodo.Parque)
             .Include(nodo => nodo.Inversor).ThenInclude(inversor => inversor.Sensor)
             .SingleOrDefaultAsync(nodo => nodo.ID == id, cancellationToken);

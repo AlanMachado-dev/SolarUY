@@ -25,22 +25,20 @@ try
     PersistenciaConfiguration.ConfigurarContexto(opciones, conexion.ConnectionString);
     await using var contexto = new SolarUyDbContext(opciones.Options);
     var migraciones = contexto.Database.GetMigrations().ToArray();
-    await contexto.GetService<IMigrator>().MigrateAsync(migraciones[^2]);
+    await contexto.Database.MigrateAsync();
     var parque = ParqueSolar.Crear("Parque req007", "Sur");
     var nodo = parque.AgregarNodo("Nodo", 0, 0, Inversor.Crear("Inversor", "I", Sensor.Crear("Sensor", "S")));
     var panel = nodo.AgregarPanel("Panel", "Modelo", 500, DateTime.UtcNow);
     contexto.Add(parque);
     await contexto.SaveChangesAsync();
+    await contexto.GetService<IMigrator>().MigrateAsync(migraciones.Single(m => m.EndsWith("_AltaPanelSolar")));
     await contexto.Database.MigrateAsync();
-    var repositorio = new MedicionRepository(new FabricaContexto(opciones.Options));
-    var panelPersistido = await repositorio.ObtenerPanelAsync(panel.ID, default);
-    if (panelPersistido is null || await repositorio.ObtenerUltimaAsync(panel.ID, default) is not null)
+    var repositorio = new MedicionRepository(new FabricaContexto(opciones.Options), TimeProvider.System);
+    if (await repositorio.ConsultarAsync(panel.ID, default) is not { MedicionId: null, RevisionControl: 0 })
         throw new InvalidOperationException();
-    var medicion = Medicion.Crear(panelPersistido, DateTime.UtcNow, 42, EstadoPanel.Operativo);
-    if (!await repositorio.GuardarAsync(medicion, default))
+    if (await repositorio.AdmitirAsync(new(panel.ID, 42, 0), default) is not { Codigo: ResultadoRegistroMedicion.Guardada })
         throw new InvalidOperationException();
-    var guardada = await repositorio.ObtenerUltimaAsync(panel.ID, default);
-    if (guardada?.ID != medicion.ID || guardada.FechaUtc != medicion.FechaUtc || guardada.FechaUtc.Kind != DateTimeKind.Utc)
+    if (await repositorio.ConsultarAsync(panel.ID, default) is not { GeneracionActualW: 42, FechaUtc.Kind: DateTimeKind.Utc })
         throw new InvalidOperationException();
     var notificacion = new NotificacionMedicion();
     var servicio = new MonitoreoService(repositorio, notificacion);
@@ -51,7 +49,7 @@ try
     using var operador = Suscribir("Operador", panel.ID, lecturasOperador);
     using var otro = Suscribir("Operador", Guid.NewGuid(), lecturasOtroPanel);
 
-    var entrada = new RegistrarMedicionDto(panel.ID, 80, EstadoPanel.Operativo);
+    var entrada = new MuestraSensorDto(panel.ID, 80, 0);
     if (await servicio.RegistrarAsync(entrada) != ResultadoRegistroMedicion.Guardada)
         throw new InvalidOperationException();
     var confirmada = await servicio.ConsultarAsync(panel.ID);

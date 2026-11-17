@@ -33,45 +33,38 @@ try
     var fabrica = new FabricaContexto(opciones.Options);
     var notificacion = new NotificacionPrueba();
     var control = new ControlPanelService(new ControlPanelRepository(fabrica, TimeProvider.System), notificacion);
-    var monitoreo = new MonitoreoService(new MedicionRepository(fabrica), notificacion);
+    var monitoreo = new MonitoreoService(new MedicionRepository(fabrica, TimeProvider.System), notificacion);
     var admin = Usuario("Administrador");
-    Exigir((await control.CambiarEstadoAsync(Usuario("Operador"), panel.ID, false)).Codigo ==
+    Exigir((await control.EjecutarAsync(Usuario("Operador"), panel.ID, new DesactivarPanel())).Codigo ==
         CodigoControlPanel.AccesoDenegado, "Operador no puede desactivar.");
-    Exigir((await control.CambiarEstadoAsync(new ClaimsPrincipal(), panel.ID, false)).Codigo ==
+    Exigir((await control.EjecutarAsync(new ClaimsPrincipal(), panel.ID, new DesactivarPanel())).Codigo ==
         CodigoControlPanel.AccesoDenegado, "Una sesión anónima no puede desactivar.");
-    Exigir((await control.CambiarEstadoAsync(admin, Guid.NewGuid(), false)).Codigo ==
+    Exigir((await control.EjecutarAsync(admin, Guid.NewGuid(), new DesactivarPanel())).Codigo ==
         CodigoControlPanel.PanelNoEncontrado, "Identificador inexistente.");
 
-    Exigir(await monitoreo.RegistrarAsync(new(panel.ID, 120, EstadoPanel.Operativo)) ==
+    Exigir(await monitoreo.RegistrarAsync(new(panel.ID, 120, 0)) ==
         ResultadoRegistroMedicion.Guardada, "Lectura inicial.");
-    var ordenes = await Task.WhenAll(control.CambiarEstadoAsync(admin, panel.ID, false),
-        control.CambiarEstadoAsync(admin, panel.ID, false));
+    var ordenes = await Task.WhenAll(control.EjecutarAsync(admin, panel.ID, new DesactivarPanel()),
+        control.EjecutarAsync(admin, panel.ID, new DesactivarPanel()));
     Exigir(ordenes.Count(resultado => resultado.Codigo == CodigoControlPanel.Actualizado) == 1 &&
         ordenes.Count(resultado => resultado.Codigo == CodigoControlPanel.SinCambios) == 1 &&
         notificacion.Lecturas.Count == 2, "Una sola transición y una notificación para órdenes concurrentes.");
     Exigir(await monitoreo.ConsultarAsync(panel.ID) is
         { EstadoControl: EstadoPanel.Desactivado, Estado: EstadoPanel.Desactivado, GeneracionActualW: 0 },
         "Estado persistido y cero confirmado al desactivar.");
-    Exigir(await monitoreo.ConsultarHabilitadoAsync(panel.ID) == false &&
-        await monitoreo.ConsultarHabilitadoAsync(otro.ID) == true, "Aislamiento por panel.");
-    Exigir(await monitoreo.RegistrarAsync(new(panel.ID, 120, EstadoPanel.Operativo)) !=
+    Exigir(await monitoreo.ConsultarTransmisionAsync(panel.ID) is { Habilitado: false } &&
+        await monitoreo.ConsultarTransmisionAsync(otro.ID) is { Habilitado: true }, "Aislamiento por panel.");
+    Exigir(await monitoreo.RegistrarAsync(new(panel.ID, 120, 0)) !=
         ResultadoRegistroMedicion.Guardada, "Rechazo de lectura anterior a la desactivación.");
 
     var simulador = new InversorSimulado();
-    simulador.Desactivar();
-    var lectura = simulador.Leer(500);
-    Exigir(lectura == (0f, (int)EstadoPanel.Desactivado) &&
-        await monitoreo.RegistrarAsync(new(panel.ID, lectura.GeneracionActualW, (EstadoPanel)lectura.Estado)) ==
-        ResultadoRegistroMedicion.Guardada, "Lectura del simulador desactivado.");
-
-    var activacion = await control.CambiarEstadoAsync(admin, panel.ID, true);
+    var activacion = await control.EjecutarAsync(admin, panel.ID, new ActivarPanel());
     Exigir(activacion is { Codigo: CodigoControlPanel.Actualizado, Lectura.EstadoControl: EstadoPanel.Operativo } &&
-        await monitoreo.ConsultarHabilitadoAsync(panel.ID) == true, "Activación persistida.");
-    Exigir(await monitoreo.RegistrarAsync(new(panel.ID, 0, EstadoPanel.Desactivado)) !=
+        await monitoreo.ConsultarTransmisionAsync(panel.ID) is { Habilitado: true }, "Activación persistida.");
+    Exigir(await monitoreo.RegistrarAsync(new(panel.ID, 0, 1)) !=
         ResultadoRegistroMedicion.Guardada, "Rechazo de lectura anterior a la activación.");
-    simulador.Activar();
     for (var i = 0; i < 100; i++)
-        Exigir(simulador.Leer(500).Estado != (int)EstadoPanel.Desactivado, "Sin desactivaciones aleatorias.");
+        Exigir(simulador.LeerPotencia(500) is >= 0 and < 500, "Potencia operativa dentro del rango.");
 
     await contexto.Database.ExecuteSqlRawAsync(
         "CREATE TRIGGER req011_fallo BEFORE INSERT ON Medicion FOR EACH ROW " +
@@ -79,7 +72,7 @@ try
     try
     {
         var cantidad = notificacion.Lecturas.Count;
-        Exigir((await control.CambiarEstadoAsync(admin, panel.ID, false)).Codigo ==
+        Exigir((await control.EjecutarAsync(admin, panel.ID, new DesactivarPanel())).Codigo ==
             CodigoControlPanel.ErrorDePersistencia, "Fallo controlado al registrar el cambio.");
         Exigir(await monitoreo.ConsultarAsync(panel.ID) == activacion.Lectura &&
             notificacion.Lecturas.Count == cantidad, "Reversión atómica sin notificar el cambio fallido.");

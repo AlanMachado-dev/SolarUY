@@ -187,7 +187,9 @@ static class VerificacionDespliegue
             opcionesHub.HttpMessageHandlerFactory = _ => Handler(cookiesAdmin);
         }).Build();
         await hub.StartAsync();
-        await hub.InvokeAsync("Registrar", new RegistrarMedicionDto(panelId, 321, EstadoPanel.Operativo));
+        var permiso = await hub.InvokeAsync<PermisoTransmisionDto>("AsociarSensor", panelId);
+        var registro = await hub.InvokeAsync<string>("Registrar", new MuestraSensorDto(panelId, 321, permiso.RevisionControl));
+        Verificar(registro == nameof(ResultadoRegistroMedicion.Guardada), "El hub confirma la lectura");
         await hub.StopAsync();
         Verificar(await contexto.Set<Medicion>().AnyAsync(muestra => EF.Property<Guid>(muestra, "IdPanel") == panelId && muestra.GeneracionActualW == 321),
             "Monitoreo real persiste una medición simulada exclusivamente en la base aislada");

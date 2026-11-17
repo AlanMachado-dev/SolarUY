@@ -10,10 +10,16 @@ public sealed class Medicion
 
     private Medicion() { }
 
-    public bool EsCompatibleConControl(EstadoPanel estadoControl) =>
-        estadoControl == EstadoPanel.Desactivado
-            ? Estado == EstadoPanel.Desactivado && GeneracionActualW == 0
-            : Estado != EstadoPanel.Desactivado;
+    public static Medicion CrearLectura(Panel panel, DateTime fechaUtc, float generacionActualW)
+    {
+        ArgumentNullException.ThrowIfNull(panel);
+        if (!panel.AdmiteTelemetria)
+            throw new InvalidOperationException("El panel tiene la telemetría en pausa.");
+
+        return Crear(panel, fechaUtc, generacionActualW, EstadoPanel.Operativo);
+    }
+
+    public static Medicion CrearControl(Panel panel, DateTime fechaUtc) => Crear(panel, fechaUtc, 0, panel.Estado);
 
     public static Medicion Crear(Panel panel, DateTime fechaUtc, float generacionActualW, EstadoPanel estado)
     {

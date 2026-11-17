@@ -14,7 +14,7 @@ public sealed class SesionCookieEventsHandler : CookieAuthenticationEvents
 
     public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
     {
-        if (context.Request.Path.StartsWithSegments("/api/asistente"))
+        if (EsApi(context.Request.Path))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
@@ -24,13 +24,16 @@ public sealed class SesionCookieEventsHandler : CookieAuthenticationEvents
 
     public override Task RedirectToAccessDenied(RedirectContext<CookieAuthenticationOptions> context)
     {
-        if (context.Request.Path.StartsWithSegments("/api/asistente"))
+        if (EsApi(context.Request.Path))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return Task.CompletedTask;
         }
         return base.RedirectToAccessDenied(context);
     }
+
+    private static bool EsApi(PathString ruta) => ruta.StartsWithSegments("/api/asistente") ||
+        ruta.StartsWithSegments("/api/monitoreo");
 
     private readonly ILogger<SesionCookieEventsHandler> _logger;
 

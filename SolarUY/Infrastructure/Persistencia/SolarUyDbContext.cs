@@ -25,5 +25,6 @@ public sealed class SolarUyDbContext : DbContext
         modelBuilder.ApplyConfiguration(new SensorConfiguration());
         modelBuilder.ApplyConfiguration(new PanelConfiguration());
         modelBuilder.ApplyConfiguration(new MedicionConfiguration());
+        modelBuilder.ApplyConfiguration(new MantenimientoConfiguration());
     }
 }

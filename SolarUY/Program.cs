@@ -80,6 +80,8 @@ builder.Services.AddScoped<IPanelService, PanelService>();
 builder.Services.AddScoped<IMedicionRepository, MedicionRepository>();
 builder.Services.AddScoped<IControlPanelRepository, ControlPanelRepository>();
 builder.Services.AddScoped<ControlPanelService>();
+builder.Services.AddScoped<VencimientosMantenimientoService>();
+builder.Services.AddHostedService<ProcesamientoMantenimientoService>();
 builder.Services.AddScoped<IEnergiaRepository, EnergiaRepository>();
 builder.Services.AddScoped<EnergiaService>();
 builder.Services.AddScoped<MonitoreoService>();
@@ -210,6 +212,7 @@ app.MapPost("/cuenta/cerrar-sesion", async (HttpContext context, IAntiforgery an
 }).RequireAuthorization();
 
 app.MapHub<MonitoreoHub>("/hubs/monitoreo");
+app.MapearControlSensor();
 app.MapearAsistente();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

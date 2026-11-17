@@ -1,5 +1,5 @@
 @namespace SolarUY.Client.Monitoreo
-@using Microsoft.AspNetCore.SignalR
+@using System.Net.Http.Json
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 @inject NavigationManager Navegacion
@@ -11,49 +11,100 @@
     [Parameter] public float PotenciaNominalW { get; set; }
 
     private readonly InversorSimulado _inversor = new();
+    private readonly HttpClient _http = new();
     private readonly CancellationTokenSource _cancelacion = new();
+    private readonly SemaphoreSlim _avisoPausa = new(0);
+    private long _revisionPausa = -1;
     private Task? _ciclo;
-    private string _estado = "Sensor activo. Esperando el primer envío…";
+    private string _estado = "Consultando el control del sensor…";
 
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
-            _ciclo = EnviarPeriodicamenteAsync(PanelId, PotenciaNominalW, _cancelacion.Token);
+            _ciclo = EnviarPeriodicamenteAsync(_cancelacion.Token);
     }
 
-    private async Task EnviarPeriodicamenteAsync(Guid panelId, float potenciaNominalW, CancellationToken token)
+    private async Task EnviarPeriodicamenteAsync(CancellationToken token)
     {
         await using var conexion = new HubConnectionBuilder()
             .WithUrl(Navegacion.ToAbsoluteUri("hubs/monitoreo"))
             .Build();
-        using var reloj = new PeriodicTimer(TimeSpan.FromSeconds(20));
-
-        while (await reloj.WaitForNextTickAsync(token))
+        using var aviso = conexion.On<long>("PausarTelemetria", revision =>
         {
+            if (revision > _revisionPausa)
+            {
+                _revisionPausa = revision;
+                _avisoPausa.Release();
+            }
+        });
+
+        while (!token.IsCancellationRequested)
+        {
+            var espera = TimeSpan.FromSeconds(2);
             try
             {
-                if (conexion.State == HubConnectionState.Disconnected)
+                var permiso = await ConsultarAsync(token);
+                if (PermiteTransmitir(permiso) && conexion.State == HubConnectionState.Disconnected)
+                {
                     await conexion.StartAsync(token);
+                    permiso = await conexion.InvokeAsync<Permiso>("AsociarSensor", PanelId, token);
+                }
 
-                var habilitado = await conexion.InvokeAsync<bool>("ConsultarHabilitado", panelId, token);
-                var lectura = _inversor.Leer(potenciaNominalW, habilitado);
-                await conexion.InvokeAsync("Registrar",
-                    new { PanelId = panelId, lectura.GeneracionActualW, lectura.Estado }, token);
-                _estado = "Último envío confirmado.";
-            }
-            catch (HubException)
-            {
-                _estado = "El servidor rechazó la lectura. El sensor volverá a intentar en el próximo ciclo.";
+                if (PermiteTransmitir(permiso))
+                {
+                    var resultado = await conexion.InvokeAsync<string>("Registrar",
+                        new { PanelId, GeneracionActualW = _inversor.LeerPotencia(PotenciaNominalW), permiso.RevisionControl }, token);
+                    if (resultado is "EnPausa" or "RevisionDesactualizada")
+                        permiso = await ConsultarAsync(token);
+                    else if (resultado == "Guardada")
+                    {
+                        _estado = "Último envío confirmado.";
+                        espera = TimeSpan.FromSeconds(20);
+                    }
+                    else
+                        _estado = "El servidor rechazó la lectura. El sensor volverá a intentar.";
+                }
+
+                if (!PermiteTransmitir(permiso))
+                    await PausarAsync(conexion, token);
             }
             catch (Exception) when (!token.IsCancellationRequested)
             {
-                _estado = "Conexión interrumpida. El sensor volverá a intentar en el próximo ciclo.";
+                _estado = "Conexión interrumpida. El sensor volverá a intentar.";
                 await conexion.StopAsync(token);
             }
 
-            if (!token.IsCancellationRequested)
-                await InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
+            if (await _avisoPausa.WaitAsync(espera, token))
+            {
+                // La revisión del aviso se contrasta con el control confirmado antes de volver a enviar.
+                var permiso = await ConsultarAvisoAsync(token);
+                if (permiso is null || !PermiteTransmitir(permiso))
+                {
+                    await PausarAsync(conexion, token);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
         }
+    }
+
+    private bool PermiteTransmitir(Permiso permiso) => permiso.Habilitado && permiso.RevisionControl > _revisionPausa;
+
+    private async Task PausarAsync(HubConnection conexion, CancellationToken token)
+    {
+        await conexion.StopAsync(token);
+        _estado = "Telemetría en pausa.";
+    }
+
+    private async Task<Permiso> ConsultarAsync(CancellationToken token) =>
+        await _http.GetFromJsonAsync<Permiso>(
+            Navegacion.ToAbsoluteUri($"api/monitoreo/paneles/{PanelId:D}/transmision"), token)
+        ?? throw new InvalidOperationException("El servidor no devolvió el permiso de transmisión.");
+
+    private async Task<Permiso?> ConsultarAvisoAsync(CancellationToken token)
+    {
+        try { return await ConsultarAsync(token); }
+        catch (Exception) when (!token.IsCancellationRequested) { return null; }
     }
 
     public async ValueTask DisposeAsync()
@@ -67,7 +118,11 @@
         catch (OperationCanceledException) { }
         finally
         {
+            _avisoPausa.Dispose();
+            _http.Dispose();
             _cancelacion.Dispose();
         }
     }
+
+    private sealed record Permiso(bool Habilitado, long RevisionControl);
 }
