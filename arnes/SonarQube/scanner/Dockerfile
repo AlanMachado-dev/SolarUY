@@ -7,7 +7,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Instalar la herramienta dotnet-sonarscanner globalmente
-RUN dotnet tool install --global dotnet-sonarscanner
+RUN dotnet tool install --global dotnet-sonarscanner && \
+    dotnet tool install --global dotnet-coverage --version 18.12.0 --allow-roll-forward
 
 # Agregar las herramientas globales de dotnet al PATH
 ENV PATH="$PATH:/root/.dotnet/tools"

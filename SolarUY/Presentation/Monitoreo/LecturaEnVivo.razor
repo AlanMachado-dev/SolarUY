@@ -8,55 +8,81 @@
 @inject AuthenticationStateProvider Autenticacion
 @inject ILogger<LecturaEnVivo> Logger
 
-<section aria-live="polite">
-    @if (_lectura is { } lectura)
-    {
-        <dl>
-            <dt>Estado de control</dt><dd>@lectura.EstadoControl</dd>
-            <dt>Estado de la última medición</dt><dd>@(lectura.FechaUtc.HasValue ? lectura.Estado.ToString() : "Sin mediciones")</dd>
-            <dt>Generación actual</dt>
-            <dd>
+<section class="card mb-4" aria-labelledby="generacion-actual-titulo">
+    <div class="card-body">
+        <h2 id="generacion-actual-titulo" class="h5">Generación actual</h2>
+        @if (_lectura is { } lectura)
+        {
+            <div class="lectura-principal">
+                <div>
+                    <div aria-live="polite">
+                        @if (lectura.GeneracionActualW is { } valor)
+                        {
+                            <p class="lectura-valor">@FormatoSolar.Vatios(valor) <span>W</span></p>
+                        }
+                        else
+                        {
+                            <p class="fs-4 fw-semibold mb-2">No disponible</p>
+                        }
+                    </div>
+                    <p class="text-body-secondary small mb-0">
+                        @if (lectura.FechaUtc is { } fecha)
+                        {
+                            <span>Última medición · @FormatoSolar.FechaUruguay(fecha)</span>
+                        }
+                        else
+                        {
+                            <span>Aún no hay mediciones</span>
+                        }
+                    </p>
+                </div>
                 @if (lectura.GeneracionActualW is { } potencia)
                 {
                     var maximo = MaximoEscala(lectura.PotenciaNominalW, potencia);
-                    <div aria-hidden="true">
-                        <RadzenRadialGauge Style="width: 100%; max-width: 24rem; height: 16rem;">
-                            <RadzenRadialGaugeScale Min="0" Max="@maximo" Step="@(maximo / 4)" FormatString="{0:G4}">
-                                <RadzenRadialGaugeScalePointer Value="@potencia" />
+                    <div class="lectura-medidor" aria-hidden="true">
+                        <RadzenRadialGauge Style="width: 100%; height: clamp(10rem, 22vw, 14rem);">
+                            <RadzenRadialGaugeScale Min="0" Max="@maximo" Step="@(maximo / 4)" Formatter="@FormatoSolar.Vatios">
+                                <RadzenRadialGaugeScalePointer Value="@potencia" Fill="var(--bs-primary)" />
                             </RadzenRadialGaugeScale>
                         </RadzenRadialGauge>
                     </div>
-                    <span>@potencia W</span>
                 }
-                else
-                {
-                    <span>No disponible</span>
-                }
-            </dd>
-            <dt>Fecha de medición</dt><dd>@(lectura.FechaUtc is { } fecha ? $"{fecha:dd/MM/yyyy HH:mm:ss} UTC" : "Aún no hay mediciones")</dd>
-        </dl>
-        <AuthorizeView Roles="Administrador">
-            <Authorized>
-                @if (lectura.PuedeCambiarEstado)
-                {
-                    var activar = lectura.EstaDesactivado;
-                    <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
-                            @onclick="() => CambiarEstadoAsync(activar)">
-                        @(activar ? "Activar panel" : "Desactivar panel")
-                    </button>
-                }
-                @if (_mensajeControl is not null)
-                {
-                    <p class="mt-2" role="@(_errorControl ? "alert" : "status")">@_mensajeControl</p>
-                }
-            </Authorized>
-        </AuthorizeView>
-    }
-    else
-    {
-        <p>@_mensaje</p>
-    }
+            </div>
+
+            <dl class="lectura-estados">
+                <div>
+                    <dt>Estado de control</dt>
+                    <dd>@lectura.EstadoControl</dd>
+                </div>
+                <div>
+                    <dt>Estado de la última medición</dt>
+                    <dd>@(lectura.FechaUtc.HasValue ? lectura.Estado.ToString() : "Sin mediciones")</dd>
+                </div>
+            </dl>
+            <AuthorizeView Roles="Administrador">
+                <Authorized>
+                    @if (lectura.PuedeCambiarEstado)
+                    {
+                        var activar = lectura.EstaDesactivado;
+                        <button type="button" class="btn btn-outline-primary" disabled="@_enviandoOrden"
+                                @onclick="() => CambiarEstadoAsync(activar)">
+                            @(activar ? "Activar panel" : "Desactivar panel")
+                        </button>
+                    }
+                    @if (_mensajeControl is not null)
+                    {
+                        <p class="mt-2 mb-0" role="@(_errorControl ? "alert" : "status")">@_mensajeControl</p>
+                    }
+                </Authorized>
+            </AuthorizeView>
+        }
+        else
+        {
+            <p class="mb-0" role="status">@_mensaje</p>
+        }
+    </div>
 </section>
+
 
 @code {
     [Parameter] public Guid PanelId { get; set; }

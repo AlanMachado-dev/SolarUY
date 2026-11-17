@@ -30,6 +30,7 @@
     width: 1.25rem;
     height: 1.25rem;
     margin-right: 0.75rem;
+    flex: 0 0 auto;
     top: -1px;
     background-size: cover;
 }
@@ -64,10 +65,10 @@
         background: none;
         border: none;
         border-radius: 4px;
-        height: 3rem;
+        min-height: 3rem;
         display: flex;
         align-items: center;
-        line-height: 3rem;
+        line-min-height: 3rem;
         width: 100%;
     }
 
@@ -102,4 +103,9 @@
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
     }
+}
+
+.cuenta {
+    overflow-wrap: anywhere;
+    padding-bottom: 1rem;
 }

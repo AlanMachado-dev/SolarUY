@@ -1,24 +1,18 @@
 #components-reconnect-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    background: rgb(0 0 0 / 55%);
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-}
-.components-reconnect-hide { display: none; }
-.components-reconnect-show,
-.components-reconnect-failed,
-.components-reconnect-rejected { display: flex; }
-.aviso-conexion {
-    max-width: 32rem;
+    width: min(32rem, calc(100% - 2rem));
+    max-width: none;
     padding: 1.5rem;
-    border-radius: .5rem;
+    border: 1px solid var(--bs-border-color, #d8e0ea);
+    border-radius: .85rem;
     background: white;
-    color: #212529;
+    color: var(--bs-body-color, #182a43);
 }
-.reintentando, .sin-conexion, .circuito-perdido { display: none; }
-.components-reconnect-show .reintentando,
-.components-reconnect-failed .sin-conexion,
-.components-reconnect-rejected .circuito-perdido { display: block; }
+
+#components-reconnect-modal::backdrop {
+    background: rgb(0 0 0 / 55%);
+}
+
+#components-reconnect-modal p:last-child,
+#components-reconnect-modal:has(button[hidden]) p {
+    margin-bottom: 0;
+}

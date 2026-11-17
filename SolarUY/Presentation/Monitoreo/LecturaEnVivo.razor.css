@@ -1,0 +1,42 @@
+.lectura-principal {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    align-items: center;
+    gap: .5rem 1rem;
+    padding-block: .5rem;
+}
+
+.lectura-valor {
+    margin: 0 0 .375rem;
+    font-size: clamp(2.375rem, 7vw, 4.75rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+}
+
+.lectura-valor span {
+    font-size: .42em;
+    letter-spacing: normal;
+    color: var(--bs-secondary-color);
+}
+
+.lectura-medidor {
+    min-width: 0;
+    width: 100%;
+    max-width: 22rem;
+    justify-self: center;
+}
+
+.lectura-estados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .625rem 2rem;
+    border-top: 1px solid var(--bs-border-color);
+    margin-top: .75rem;
+    padding-top: 1rem;
+}
+
+.lectura-estados dd {
+    margin-bottom: 0;
+}

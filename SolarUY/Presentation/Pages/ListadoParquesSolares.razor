@@ -1,13 +1,17 @@
 @page "/parques-solares"
 @namespace SolarUY.Presentation.Pages
 @attribute [Authorize]
-@using System.Globalization
 @inject IParqueSolarService ParqueService
 @inject NavigationManager Navegacion
 @inject ILogger<ListadoParquesSolares> Logger
 
 <PageTitle>Parques solares - SolarUY</PageTitle>
-<h1>Parques solares</h1>
+<header class="encabezado-pagina">
+    <h1>Parques solares</h1>
+    <AuthorizeView Roles="Administrador">
+        <a class="btn btn-primary" href="/parques-solares/nuevo" data-enhance-nav="false">Registrar parque solar</a>
+    </AuthorizeView>
+</header>
 
 @if (_errorCarga)
 {
@@ -41,7 +45,7 @@ else if (_resultado?.Codigo == CodigoConsultaParqueSolar.Exitoso)
                                    aria-label="@($"Ver detalles de {parque.Nombre}")" data-enhance-nav="false">@parque.Nombre</a>
                             </td>
                             <td>@parque.Ubicacion</td>
-                            <td>@parque.CapacidadTotalEstimadaMw.ToString("0.############################", CultureInfo.CurrentCulture) MW</td>
+                            <td>@FormatoSolar.Megavatios(parque.CapacidadTotalEstimadaMw) MW</td>
                         </tr>
                     }
                 </tbody>

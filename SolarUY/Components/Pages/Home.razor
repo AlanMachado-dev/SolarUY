@@ -1,7 +1,16 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SolarUY</PageTitle>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<section aria-labelledby="inicio-titulo">
+    <h1 id="inicio-titulo">Gestión de parques solares</h1>
+    <p>Consultá el estado de los parques, sus nodos y la generación de los paneles.</p>
+    <AuthorizeView>
+        <Authorized>
+            <a class="btn btn-primary" href="/parques-solares" data-enhance-nav="false">Ver parques solares</a>
+        </Authorized>
+        <NotAuthorized>
+            <a class="btn btn-primary" href="/cuenta/iniciar-sesion" data-enhance-nav="false">Iniciar sesión</a>
+        </NotAuthorized>
+    </AuthorizeView>
+</section>

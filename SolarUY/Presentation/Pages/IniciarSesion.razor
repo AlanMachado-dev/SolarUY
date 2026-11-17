@@ -17,7 +17,7 @@ else if (Error == "cierre")
     <div class="alert alert-warning" role="alert">La sesión de SolarUY se cerró, pero no se pudo completar el cierre en el proveedor externo.</div>
 }
 <p>Ingresá con tu cuenta del proveedor externo. Allí se solicitarán tus credenciales.</p>
-<form method="post" action="/cuenta/autenticar" data-enhance="false">
+<form class="formulario-solar" method="post" action="/cuenta/autenticar" data-enhance="false">
     <AntiforgeryToken />
     <button class="btn btn-primary" type="submit">Iniciar sesión con proveedor externo</button>
 </form>

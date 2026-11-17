@@ -1,8 +1,10 @@
-<div id="components-reconnect-modal" class="components-reconnect-hide" role="alert" aria-live="assertive">
-    <div class="aviso-conexion">
-        <p class="reintentando">Se interrumpió la conexión. Intentando reconectar…</p>
-        <p class="sin-conexion">No se pudo recuperar la conexión. Podés recargar la página.</p>
-        <p class="circuito-perdido">La conexión anterior ya no está disponible. Recargá la página para continuar.</p>
-        <button type="button" class="btn btn-primary" onclick="window.location.reload()">Recargar página</button>
+<script type="module" src="@Assets["Components/Layout/Reconectar.razor.js"]"></script>
+
+<dialog id="components-reconnect-modal" aria-label="Conexión con SolarUY" data-nosnippet>
+    <div role="status" aria-live="polite">
+        <p data-reconexion="retrying" hidden>Se interrumpió la conexión. Intentando reconectar…</p>
+        <p data-reconexion="failed" hidden>No se pudo recuperar la conexión. Podés recargar la página.</p>
+        <p data-reconexion="rejected" hidden>La conexión anterior ya no está disponible. Recargá la página para continuar.</p>
     </div>
-</div>
+    <button id="recargar-solaruy" type="button" class="btn btn-primary" hidden>Recargar página</button>
+</dialog>

@@ -1,7 +1,6 @@
 @page "/parques-solares/{ParqueId:guid}/nodos/nuevo"
 @namespace SolarUY.Presentation.Pages
 @attribute [Authorize(Roles = "Administrador")]
-@using System.Globalization
 @using SolarUY.Application.Nodos
 @inject INodoService NodoService
 @inject IParqueSolarService ParqueService
@@ -20,8 +19,8 @@
             <dt>ID</dt><dd>@nodo.ID</dd>
             <dt>Parque</dt><dd>@_parque?.Nombre (@nodo.ParqueId)</dd>
             <dt>Nombre</dt><dd>@nodo.Nombre</dd>
-            <dt>Latitud</dt><dd>@nodo.Latitud.ToString(CultureInfo.CurrentCulture)</dd>
-            <dt>Longitud</dt><dd>@nodo.Longitud.ToString(CultureInfo.CurrentCulture)</dd>
+            <dt>Latitud</dt><dd>@FormatoSolar.Coordenada(nodo.Latitud)</dd>
+            <dt>Longitud</dt><dd>@FormatoSolar.Coordenada(nodo.Longitud)</dd>
             <dt>Cantidad de paneles</dt><dd>@nodo.CantidadPaneles</dd>
         </dl>
         <h3>Inversor</h3>
@@ -55,7 +54,7 @@ else
     {
         <p>Parque de destino: <strong>@parque.Nombre</strong> (@parque.ID)</p>
         <p>Los campos marcados con * son obligatorios.</p>
-        <EditForm EditContext="_editContext" FormName="alta-nodo" OnSubmit="RegistrarAsync">
+        <EditForm class="formulario-solar" EditContext="_editContext" FormName="alta-nodo" OnSubmit="RegistrarAsync">
             <ValidationSummary />
             <fieldset class="mb-4">
                 <legend>Nodo</legend>

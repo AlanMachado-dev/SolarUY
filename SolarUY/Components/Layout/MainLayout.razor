@@ -1,25 +1,19 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
 <div class="page">
-    <div class="sidebar">
+    <aside class="sidebar">
         <NavMenu />
-    </div>
+    </aside>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
+    <main class="content">
+        @Body
     </main>
 </div>
 
 <SolarUY.Presentation.Asistente.ChatAsistente @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <button type="button" class="dismiss btn-close" aria-label="Cerrar aviso"></button>
 </div>

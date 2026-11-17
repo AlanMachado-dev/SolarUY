@@ -58,3 +58,35 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Espaciado y ajuste de los datos de SolarUY sobre el estilo de Blazor. */
+.formulario-solar {
+    max-width: 48rem;
+}
+
+.ficha-solar {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: 1rem;
+}
+
+.tabla-parques {
+    min-width: 36rem;
+}
+
+.tabla-parques td:last-child {
+    font-variant-numeric: tabular-nums;
+}
+
+.encabezado-pagina {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+
+.encabezado-pagina h1 {
+    margin-bottom: 0;
+}

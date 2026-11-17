@@ -1,57 +1,52 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">SolarUY</a>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input id="menu-solaruy" type="checkbox" class="navbar-toggler" aria-label="Mostrar navegación" aria-controls="navegacion-principal" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <AuthorizeView Roles="Administrador">
-            <Authorized>
+<nav id="navegacion-principal" class="nav-scrollable nav flex-column" aria-label="Navegación principal">
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="" Match="NavLinkMatch.All"><span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span>Inicio</NavLink>
+    </div>
+    <AuthorizeView>
+        <Authorized>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="parques-solares" Match="NavLinkMatch.All" data-enhance-nav="false"><span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span>Parques solares</NavLink>
+            </div>
+            @if (context.User.IsInRole("Administrador"))
+            {
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="parques-solares/nuevo" data-enhance-nav="false">Registrar parque solar</NavLink>
+                    <NavLink class="nav-link" href="parques-solares/nuevo" Match="NavLinkMatch.All" data-enhance-nav="false"><span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span>Registrar parque solar</NavLink>
                 </div>
-            </Authorized>
-        </AuthorizeView>
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="parques-solares" Match="NavLinkMatch.All" data-enhance-nav="false">Parques solares</NavLink>
-                </div>
-                <div class="px-3 text-white" role="status">
-                    <p>Sesión iniciada: @(context.User.Identity?.Name ?? "Usuario autenticado")</p>
-                    <p>
-                        Roles:
-                        @if (context.User.IsInRole("Administrador"))
-                        {
-                            <span>Administrador </span>
-                        }
-                        @if (context.User.IsInRole("Operador"))
-                        {
-                            <span>Operador </span>
-                        }
-                        @if (!context.User.IsInRole("Administrador") && !context.User.IsInRole("Operador"))
-                        {
-                            <span>Sin roles reconocidos</span>
-                        }
-                    </p>
-                </div>
-                <div class="nav-item px-3">
-                    <form method="post" action="/cuenta/cerrar-sesion" data-enhance="false">
-                        <AntiforgeryToken />
-                        <button class="nav-link btn" type="submit">Cerrar sesión</button>
-                    </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="cuenta/iniciar-sesion" data-enhance-nav="false">Iniciar sesión</NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-        
-    </nav>
-</div>
-
+            }
+            <div class="cuenta border-top border-light border-opacity-25 mx-3 pt-3 mt-2">
+                <p class="fw-semibold mb-1">@(context.User.Identity?.Name ?? "Usuario autenticado")</p>
+                <p class="small d-flex flex-wrap column-gap-2 text-white-50 mb-2">
+                    @if (context.User.IsInRole("Administrador"))
+                    {
+                        <span>Administrador</span>
+                    }
+                    @if (context.User.IsInRole("Operador"))
+                    {
+                        <span>Operador</span>
+                    }
+                    @if (!context.User.IsInRole("Administrador") && !context.User.IsInRole("Operador"))
+                    {
+                        <span>Sin roles reconocidos</span>
+                    }
+                </p>
+                <form method="post" action="/cuenta/cerrar-sesion" data-enhance="false">
+                    <AntiforgeryToken />
+                    <button class="btn btn-outline-light btn-sm" type="submit">Cerrar sesión</button>
+                </form>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="cuenta/iniciar-sesion" data-enhance-nav="false">Iniciar sesión</NavLink>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</nav>

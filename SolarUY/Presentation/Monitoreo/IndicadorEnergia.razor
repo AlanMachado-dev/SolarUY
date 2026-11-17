@@ -11,7 +11,7 @@
             <h2 id="energia-estimada-titulo" class="h5 card-title">Energía estimada de hoy</h2>
             @if (resultado.EnergiaKwh is { } energiaKwh)
             {
-                <p class="fs-4 fw-semibold mb-1">@FormatearEnergia(energiaKwh) kWh</p>
+                <p class="fs-4 fw-semibold mb-1">@FormatoSolar.KilovatiosHora(energiaKwh) kWh</p>
             }
             @if (resultado.Cobertura == CoberturaEnergia.Parcial)
             {
@@ -27,7 +27,7 @@
             }
             <p class="small text-body-secondary mb-0">
                 Mediciones simuladas · Consulta del
-                <time datetime="@resultado.CorteLocal.ToString("O", CultureInfo.InvariantCulture)">@resultado.CorteLocal.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture)</time>
+                <time datetime="@resultado.CorteLocal.ToString("O", CultureInfo.InvariantCulture)">@FormatoSolar.FechaLocal(resultado.CorteLocal)</time>
                 (hora de Uruguay)
             </p>
         </div>
@@ -63,13 +63,5 @@ else if (_errorCarga)
             if (consulta == _consulta)
                 _errorCarga = true;
         }
-    }
-
-    private static string FormatearEnergia(decimal energiaKwh)
-    {
-        const decimal minimoVisible = 0.001m;
-        return energiaKwh is > 0 and < minimoVisible
-            ? "< " + minimoVisible.ToString("0.###", CultureInfo.CurrentCulture)
-            : energiaKwh.ToString("0.###", CultureInfo.CurrentCulture);
     }
 }

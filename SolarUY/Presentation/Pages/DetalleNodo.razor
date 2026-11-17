@@ -1,7 +1,6 @@
 @page "/nodos/{Id:guid}"
 @namespace SolarUY.Presentation.Pages
 @attribute [Authorize(Roles = "Administrador,Operador")]
-@using System.Globalization
 @using SolarUY.Application.Energia
 @using SolarUY.Application.Nodos
 @using SolarUY.Presentation.Monitoreo
@@ -29,23 +28,23 @@ else if (_resultado?.Codigo == CodigoConsultaNodo.Exitoso && _resultado.Nodo is 
         <div class="alert alert-success" role="status">Panel solar registrado</div>
     }
     <div class="detalle-nodo">
-        <section aria-labelledby="nodo-titulo" class="mb-4">
+        <section aria-labelledby="nodo-titulo" class="ficha-solar mb-4">
             <h2 id="nodo-titulo">Nodo</h2>
             <dl>
                 <dt>Nombre</dt><dd>@nodo.Nombre</dd>
-                <dt>Latitud</dt><dd>@nodo.Latitud.ToString(CultureInfo.CurrentCulture)</dd>
-                <dt>Longitud</dt><dd>@nodo.Longitud.ToString(CultureInfo.CurrentCulture)</dd>
+                <dt>Latitud</dt><dd>@FormatoSolar.Coordenada(nodo.Latitud)</dd>
+                <dt>Longitud</dt><dd>@FormatoSolar.Coordenada(nodo.Longitud)</dd>
                 <dt>Cantidad de paneles</dt><dd>@nodo.CantidadPaneles</dd>
             </dl>
         </section>
-        <section aria-labelledby="inversor-titulo" class="mb-4">
+        <section aria-labelledby="inversor-titulo" class="ficha-solar mb-4">
             <h2 id="inversor-titulo">Inversor</h2>
             <dl>
                 <dt>Nombre</dt><dd>@nodo.Inversor.Nombre</dd>
                 <dt>Número de serie</dt><dd>@nodo.Inversor.NumeroSerie</dd>
             </dl>
         </section>
-        <section aria-labelledby="sensor-titulo" class="mb-4">
+        <section aria-labelledby="sensor-titulo" class="ficha-solar mb-4">
             <h2 id="sensor-titulo">Sensor</h2>
             <dl>
                 <dt>Nombre</dt><dd>@nodo.Inversor.Sensor.Nombre</dd>
@@ -54,7 +53,7 @@ else if (_resultado?.Codigo == CodigoConsultaNodo.Exitoso && _resultado.Nodo is 
             </dl>
         </section>
         <IndicadorEnergia ComponenteId="nodo.ID" Tipo="TipoComponenteEnergia.Nodo" />
-        <section aria-labelledby="paneles-titulo" class="mb-4">
+        <section aria-labelledby="paneles-titulo" class="ficha-solar mb-4">
             <h2 id="paneles-titulo">Paneles solares</h2>
             @if (_resultado.Paneles.Count == 0)
             {
@@ -69,21 +68,21 @@ else if (_resultado?.Codigo == CodigoConsultaNodo.Exitoso && _resultado.Nodo is 
                             <h3 class="h4" id="@($"panel-{panel.ID:D}")">@panel.Nombre</h3>
                             <dl>
                                 <dt>Modelo</dt><dd>@panel.Modelo</dd>
-                                <dt>Potencia nominal</dt><dd>@panel.PotenciaNominalW.ToString(CultureInfo.CurrentCulture) W</dd>
-                                <dt>Fecha de instalación</dt><dd>@panel.FechaInstalacion.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture) UTC</dd>
+                                <dt>Potencia nominal</dt><dd>@FormatoSolar.Vatios(panel.PotenciaNominalW) W</dd>
+                                <dt>Fecha de instalación</dt><dd>@FormatoSolar.FechaUruguay(panel.FechaInstalacion)</dd>
                                 <dt>Estado</dt><dd>@panel.Estado</dd>
                                 <dt>Generación actual</dt>
                                 @if (panel.UltimaMedicion is { } medicion)
                                 {
-                                    <dd>@medicion.GeneracionActualW.ToString(CultureInfo.CurrentCulture) W</dd>
+                                    <dd>@FormatoSolar.Vatios(medicion.GeneracionActualW) W</dd>
                                     <dt>Estado de la medición</dt><dd>@medicion.Estado</dd>
-                                    <dt>Fecha de medición</dt><dd>@medicion.FechaUtc.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture) UTC</dd>
+                                    <dt>Fecha de medición</dt><dd>@FormatoSolar.FechaUruguay(medicion.FechaUtc)</dd>
                                 }
                                 else
                                 {
                                     <dd>Sin mediciones</dd>
                                 }
-                                <dt>Último mantenimiento</dt><dd>@(panel.UltimoMantenimiento is { } mantenimiento ? mantenimiento.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture) + " UTC" : "Sin mantenimientos")</dd>
+                                <dt>Último mantenimiento</dt><dd>@(panel.UltimoMantenimiento is { } mantenimiento ? FormatoSolar.FechaUruguay(mantenimiento) : "Sin mantenimientos")</dd>
                             </dl>
                             <a class="btn btn-primary" href="@($"/paneles/{panel.ID:D}/monitoreo")" data-enhance-nav="false">Monitoreo</a>
                         </div>

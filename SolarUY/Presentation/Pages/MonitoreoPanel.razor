@@ -10,15 +10,20 @@
 <PageTitle>Monitoreo del panel - SolarUY</PageTitle>
 <h1>Monitoreo del panel</h1>
 
-<IndicadorEnergia ComponenteId="PanelId" Tipo="TipoComponenteEnergia.Panel" />
 <LecturaEnVivo PanelId="PanelId" @key="PanelId"
                @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+<IndicadorEnergia ComponenteId="PanelId" Tipo="TipoComponenteEnergia.Panel" />
 
 <AuthorizeView Roles="Administrador">
     @if (_panel is { } panel)
     {
-        <SensorMonitoreo PanelId="panel.PanelId" PotenciaNominalW="panel.PotenciaNominalW"
-                         @key="panel.PanelId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+        <section class="card mb-4" aria-labelledby="sensor-simulado-titulo">
+            <div class="card-body">
+                <h2 id="sensor-simulado-titulo" class="h5">Sensor simulado</h2>
+                <SensorMonitoreo PanelId="panel.PanelId" PotenciaNominalW="panel.PotenciaNominalW"
+                                 @key="panel.PanelId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+            </div>
+        </section>
     }
 </AuthorizeView>
 
