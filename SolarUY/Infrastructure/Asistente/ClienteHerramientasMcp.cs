@@ -24,7 +24,7 @@ public sealed class ClienteHerramientasMcp(
         {
             var cliente = await McpClient.CreateAsync(new StreamClientTransport(recursos.Salida, recursos.Entrada),
                 cancellationToken: cancellationToken);
-            return new ConexionHerramientasMcp(cliente, recursos.Servidor);
+            return new ConexionHerramientasMcp(cliente, recursos.Servidor, instanteUtc);
         }
         catch
         {
@@ -35,10 +35,12 @@ public sealed class ClienteHerramientasMcp(
     }
 }
 
-public sealed class ConexionHerramientasMcp(McpClient cliente, IAsyncDisposable servidor) : IConexionHerramientasMcp
+public sealed class ConexionHerramientasMcp(McpClient cliente, IAsyncDisposable servidor,
+    DateTimeOffset instanteUtc) : IConexionHerramientasMcp
 {
     private readonly McpClient _cliente = cliente;
     private readonly IAsyncDisposable _servidor = servidor;
+    private readonly DateTimeOffset _instanteUtc = instanteUtc;
     private IReadOnlyList<HerramientaModeloDto>? _catalogo;
 
     public async Task<IReadOnlyList<HerramientaModeloDto>> DescubrirAsync(CancellationToken cancellationToken)
@@ -58,21 +60,21 @@ public sealed class ConexionHerramientasMcp(McpClient cliente, IAsyncDisposable 
     public async Task<ResultadoOperativoDto> InvocarAsync(LlamadaModeloDto llamada, CancellationToken cancellationToken)
     {
         if (!CatalogoAsistente.Nombres.Contains(llamada.Nombre) || _catalogo?.Any(herramienta => herramienta.Nombre == llamada.Nombre) != true)
-            return new(CodigoAsistente.ArgumentosInvalidos, DateTimeOffset.UtcNow, Mensaje: "Herramienta fuera de catálogo.");
+            return new(CodigoAsistente.ArgumentosInvalidos, _instanteUtc, Mensaje: "Herramienta fuera de catálogo.");
         try
         {
             using var documento = JsonDocument.Parse(llamada.ArgumentosJson);
             var raiz = documento.RootElement;
             if (raiz.ValueKind != JsonValueKind.Object || raiz.EnumerateObject().Count() != 1
                 || !raiz.TryGetProperty("consulta", out var consulta) || consulta.ValueKind != JsonValueKind.Object)
-                return new(CodigoAsistente.ArgumentosInvalidos, DateTimeOffset.UtcNow, Mensaje: "Se requiere únicamente el objeto consulta.");
+                return new(CodigoAsistente.ArgumentosInvalidos, _instanteUtc, Mensaje: "Se requiere únicamente el objeto consulta.");
             var opciones = new JsonSerializerOptions { UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
                 PropertyNameCaseInsensitive = true, RespectRequiredConstructorParameters = true,
                 Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
             _ = consulta.Deserialize<ConsultaOperativaDto>(opciones) ?? throw new JsonException();
             var argumentos = new Dictionary<string, object?> { ["consulta"] = consulta.Clone() };
             var resultado = await _cliente.CallToolAsync(llamada.Nombre, argumentos, cancellationToken: cancellationToken);
-            if (resultado.IsError == true) return new(CodigoAsistente.FalloMcp, DateTimeOffset.UtcNow, Mensaje: "La herramienta MCP no pudo ejecutarse.");
+            if (resultado.IsError == true) return new(CodigoAsistente.FalloMcp, _instanteUtc, Mensaje: "La herramienta MCP no pudo ejecutarse.");
             var texto = resultado.Content.OfType<TextContentBlock>().SingleOrDefault()?.Text;
             try
             {
@@ -80,16 +82,16 @@ public sealed class ConexionHerramientasMcp(McpClient cliente, IAsyncDisposable 
             }
             catch (JsonException)
             {
-                return new(CodigoAsistente.FalloMcp, DateTimeOffset.UtcNow, Mensaje: "MCP devolvió un resultado inválido, no equivale a ausencia de datos.");
+                return new(CodigoAsistente.FalloMcp, _instanteUtc, Mensaje: "MCP devolvió un resultado inválido, no equivale a ausencia de datos.");
             }
         }
         catch (JsonException)
         {
-            return new(CodigoAsistente.ArgumentosInvalidos, DateTimeOffset.UtcNow, Mensaje: "Argumentos o respuesta fuera del contrato MCP.");
+            return new(CodigoAsistente.ArgumentosInvalidos, _instanteUtc, Mensaje: "Argumentos o respuesta fuera del contrato MCP.");
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            return new(CodigoAsistente.FalloMcp, DateTimeOffset.UtcNow, Mensaje: "Falló la conexión MCP. Reintentá manualmente.");
+            return new(CodigoAsistente.FalloMcp, _instanteUtc, Mensaje: "Falló la conexión MCP. Reintentá manualmente.");
         }
     }
 

@@ -69,7 +69,7 @@ var opciones = new AsistenteOptions { Habilitado = true, ClaveApi = "doble-funci
 var usuario = new UsuarioFuncional(instante);
 var periodos = new PeriodoConsultaService(reloj, opciones);
 var repository = new ConsultaOperativaRepository(factory, opciones);
-var consultas = new ConsultaOperativaService(repository, usuario, periodos, opciones);
+var consultas = new ConsultaOperativaService(repository, usuario, periodos, opciones, new FormatoRespuestaAsistenteService());
 var nodos = new List<Nodo>();
 var paneles = new List<Panel>();
 await using (var contexto = factory.CreateDbContext())

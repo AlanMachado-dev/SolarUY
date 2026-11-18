@@ -61,6 +61,12 @@ Para detener el proyecto, presionar `Ctrl+C` en la terminal. La configuración y
 
 La [guía de acceso externo](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md) incluye Auth0, roles, configuración privada y diagnóstico. La [guía MySQL](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md) conserva la preparación del esquema. Los detalles de permisos y pruebas están en la [referencia técnica](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).
 
+## Ejecución con balanceador de carga
+
+Para levantar Nginx y las dos instancias de SolarUY con Docker Compose, seguir la [guía de configuración del balanceador](arnes/prompting/tests/req008/configuracion.md). Incluye los requisitos, la preparación de certificados con PowerShell 7, los puertos y la red, la conexión a MySQL desde Docker, los callbacks OIDC y los comandos de arranque y apagado.
+
+El acceso predeterminado es [https://localhost:8080](https://localhost:8080). Ambas instancias utilizan la configuración local y la misma base de datos; comparten las claves de protección de sesión mediante un volumen. La guía también explica la afinidad, la recuperación ante caídas y cómo preparar un entorno aislado de aceptación.
+
 ## Monitoreo en tiempo real
 
 El detalle del nodo muestra la última medición guardada de cada panel, con la potencia en W, el estado y la fecha en hora de Uruguay. El monitoreo individual presenta la potencia en un medidor radial que se actualiza al recibir nuevas lecturas.
@@ -107,6 +113,7 @@ La aceptación de mod008 con cuentas reales y una base de datos aislada está pe
 
 ### Guías de configuración y herramientas
 
+- [Balanceador de carga: certificados, Docker Compose, MySQL, OIDC y recuperación](arnes/prompting/tests/req008/configuracion.md).
 - [Acceso externo con Auth0: configuración, roles, inicio y cierre de sesión](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md).
 - [MySQL: configuración de conexión y arranque](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md).
 - [MySQL: referencia técnica, permisos y aceptación](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).

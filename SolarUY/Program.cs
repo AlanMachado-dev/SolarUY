@@ -32,6 +32,7 @@ builder.Services.ConfigureHttpJsonOptions(opciones => opciones.SerializerOptions
 builder.Services.AddScoped<IConsultaOperativaRepository, ConsultaOperativaRepository>();
 builder.Services.AddScoped<IConsultaOperativaService, ConsultaOperativaService>();
 builder.Services.AddScoped<PeriodoConsultaService>();
+builder.Services.AddScoped<FormatoRespuestaAsistenteService>();
 builder.Services.AddScoped<IAsistenteService, AsistenteService>();
 builder.Services.AddScoped<IClienteHerramientasMcp>(servicios => new ClienteHerramientasMcp((instante, cancelacion) =>
 {

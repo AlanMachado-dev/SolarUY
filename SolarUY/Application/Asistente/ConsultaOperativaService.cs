@@ -4,15 +4,21 @@ using SolarUY.Domain.Paneles;
 namespace SolarUY.Application.Asistente;
 
 public sealed class ConsultaOperativaService(IConsultaOperativaRepository repository,
-    IUsuarioActualService usuario, PeriodoConsultaService periodos, AsistenteOptions opciones) : IConsultaOperativaService
+    IUsuarioActualService usuario, PeriodoConsultaService periodos, AsistenteOptions opciones,
+    FormatoRespuestaAsistenteService formato) : IConsultaOperativaService
 {
     private readonly IConsultaOperativaRepository _repository = repository;
     private readonly IUsuarioActualService _usuario = usuario;
     private readonly PeriodoConsultaService _periodos = periodos;
     private readonly AsistenteOptions _opciones = opciones;
+    private readonly FormatoRespuestaAsistenteService _formato = formato;
     private (string Clave, PeriodoConsultaDto Periodo, InstantaneaConsultaDto Datos)? _ultimoResumen;
 
     public async Task<ResultadoOperativoDto> EjecutarAsync(string herramienta, ConsultaOperativaDto consulta,
+        DateTimeOffset instanteUtc, CancellationToken cancellationToken) =>
+        _formato.Preparar(await ConsultarAsync(herramienta, consulta, instanteUtc, cancellationToken));
+
+    private async Task<ResultadoOperativoDto> ConsultarAsync(string herramienta, ConsultaOperativaDto consulta,
         DateTimeOffset instanteUtc, CancellationToken cancellationToken)
     {
         if (!await EstaAutorizadoAsync(cancellationToken))
@@ -27,7 +33,7 @@ public sealed class ConsultaOperativaService(IConsultaOperativaRepository reposi
             var historico = herramienta != "ConsultarEstadoActual";
             var comparacion = herramienta == "CompararMediciones";
             var periodo = historico ? _periodos.Resolver(consulta.Periodo, consulta.Desde, consulta.Hasta,
-                instanteUtc, comparacion, consulta.DiasCompletos) : null;
+                instanteUtc, comparacion, consulta.DiasCompletos, consulta.CantidadPeriodo, consulta.UnidadPeriodo) : null;
             var referencia = comparacion ? _periodos.Resolver(consulta.PeriodoReferencia,
                 consulta.DesdeReferencia, consulta.HastaReferencia, instanteUtc, true, consulta.DiasCompletos) : null;
             var datos = await _repository.LeerAsync(consulta, instanteUtc, periodo, referencia,

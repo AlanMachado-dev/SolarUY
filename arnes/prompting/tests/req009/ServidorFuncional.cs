@@ -56,6 +56,7 @@ static class ServidorFuncional
         builder.Services.AddScoped<IConsultaOperativaRepository, ConsultaOperativaRepository>();
         builder.Services.AddScoped<IConsultaOperativaService, ConsultaOperativaService>();
         builder.Services.AddScoped<PeriodoConsultaService>();
+        builder.Services.AddScoped<FormatoRespuestaAsistenteService>();
         builder.Services.AddScoped<IAsistenteService, AsistenteService>();
         builder.Services.AddScoped<IModeloConversacional, ModeloFuncional>();
         builder.Services.AddSingleton<InyeccionesFuncionales>();

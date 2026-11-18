@@ -104,7 +104,8 @@ async function ejecutar() {
         const resultado = await respuesta.json();
         if (turno !== generacion) return;
         if (resultado.codigo === "Exito" || resultado.codigo === "AclaracionNecesaria") {
-            estado.mensajes.push({ rol: "assistant", texto: resultado.mensaje, referencias: resultado.referencias || [] });
+            estado.mensajes.push({ rol: "assistant", texto: resultado.mensaje,
+                referencias: resultado.referencias || [], periodos: resultado.periodos || [] });
             pendiente = null;
         } else {
             estado.error = resultado.mensaje; estado.reintentar = true;

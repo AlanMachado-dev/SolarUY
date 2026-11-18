@@ -1,0 +1,16 @@
+@namespace SolarUY.Mod009
+@page "/"
+@page "/otra-pagina"
+@using Microsoft.AspNetCore.Components.Web
+<!DOCTYPE html>
+<html lang="es">
+<head><base href="/" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="SolarUY.styles.css" /></head>
+<body>
+    <h1>Comprobación aislada mod009</h1>
+    <p>Identidad y respuesta sintéticas. MCP y MySQL de prueba reales. Sin aceptación OIDC ni Gemini.</p>
+    <a href="/otra-pagina">Otra página</a>
+    <a href="/salir">Cerrar sesión sintética</a>
+    <SolarUY.Presentation.Asistente.ChatAsistente @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

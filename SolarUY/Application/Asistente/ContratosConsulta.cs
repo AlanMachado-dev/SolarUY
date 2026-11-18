@@ -48,8 +48,12 @@ public sealed record ConsultaOperativaDto
     public string? Estado { get; init; }
     [Description("Panel, Nodo, Parque o Global. Global resume todo el ámbito sin enumerar paneles.")]
     public string Agrupacion { get; init; } = "Panel";
-    [Description("Hoy, Ayer, Manana (06:00–12:00 locales) o Explicito. Zona America/Montevideo.")]
+    [Description("Hoy, Ayer, Manana (06:00-12:00 locales), Ultimos o Explicito. Para últimos N minutos/horas/días usar Ultimos con CantidadPeriodo y UnidadPeriodo, sin calcular fechas. Zona America/Montevideo.")]
     public string Periodo { get; init; } = "Hoy";
+    [Description("Solo Ultimos: cantidad positiva y finita de unidades de duración móvil. No combinar con Desde, Hasta ni DiasCompletos.")]
+    public double? CantidadPeriodo { get; init; }
+    [Description("Solo Ultimos: Segundos, Minutos, Horas o Dias (24 horas). SolarUY calcula los extremos desde el instante único del turno.")]
+    public string? UnidadPeriodo { get; init; }
     [Description("Inicio inclusivo ISO. Sin offset se interpreta America/Montevideo.")]
     public string? Desde { get; init; }
     [Description("Fin exclusivo ISO. Máximo 31 días nuevos por invocación.")]
@@ -89,10 +93,13 @@ public sealed record ComparacionElementoDto(ElementoOperativoDto Elemento, Poten
     PotenciaObservada Referencia, ComparacionPotencia Comparacion);
 public sealed record EstadoPanelConsultaDto(ElementoOperativoDto Panel, MuestraOperativaDto? Ultima, string Vigencia);
 public sealed record EstadoConsultaDto(EstadoActualObservado Total, IReadOnlyList<EstadoPanelConsultaDto> Detalle, int TotalDetalle);
+public sealed record ValorPresentacionDto(string Campo, string Texto);
+public sealed record PresentacionConsultaDto(string Instante, string? Periodo, string? Referencia,
+    IReadOnlyList<ValorPresentacionDto> Valores);
 public sealed record ResultadoOperativoDto(CodigoAsistente Codigo, DateTimeOffset InstanteUtc,
     object? Datos = null, string? Mensaje = null, int? Total = null, int? PaginaSiguiente = null,
     CursorMedicionDto? Cursor = null, PeriodoConsultaDto? Periodo = null,
-    PeriodoConsultaDto? Referencia = null)
+    PeriodoConsultaDto? Referencia = null, PresentacionConsultaDto? Presentacion = null)
 {
     public string Unidad => "W";
     public string Origen => "Simulado: el sensor envía cada 20 segundos mientras su pantalla está activa.";

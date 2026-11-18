@@ -16,7 +16,7 @@ static class GuardasMcpService
         var opciones = new AsistenteOptions();
         var usuario = new UsuarioGuardasMcp();
         var consultas = new ConsultaOperativaService(new ConsultaOperativaRepository(new ContextoFactory(opcionesDb.Options), opciones),
-            usuario, new PeriodoConsultaService(TimeProvider.System, opciones), opciones);
+            usuario, new PeriodoConsultaService(TimeProvider.System, opciones), opciones, new FormatoRespuestaAsistenteService());
         var cliente = new ClienteHerramientasMcp((instante, cancelacion) =>
         {
             var a = new Pipe(); var b = new Pipe();
@@ -73,7 +73,7 @@ static class GuardasMcpService
             return Task.FromResult(new PasoModeloDto(CodigoAsistente.Exito, "Aclaración sintética de contextos", []));
         });
         var respuestaContexto = await new AsistenteService(usuarioConversacion, modeloContexto, cliente,
-            new PeriodoConsultaService(TimeProvider.System, opcionesConversacion), opcionesConversacion).PreguntarAsync(
+            new PeriodoConsultaService(TimeProvider.System, opcionesConversacion), opcionesConversacion, new FormatoRespuestaAsistenteService()).PreguntarAsync(
                 new("¿Este panel?", "funcional-aislada", [new("assistant", "Contexto sintético anterior",
                     [new("Panel", candidatos.Elementos[0].Id)])], new("Panel", candidatos.Elementos[1].Id)), limite.Token);
         if (respuestaContexto.Codigo != CodigoAsistente.Exito) throw new InvalidOperationException("Contexto revalidado no completado.");

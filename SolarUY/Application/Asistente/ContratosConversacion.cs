@@ -1,11 +1,15 @@
 namespace SolarUY.Application.Asistente;
 
 public sealed record SesionAsistenteDto(string Marca, DateTimeOffset EmisionUtc, DateTimeOffset VencimientoUtc);
-public sealed record MensajeAsistenteDto(string Rol, string Texto, ReferenciaElementoDto[]? Referencias = null);
+public sealed record ReferenciaTemporalDto(string Herramienta, DateTimeOffset DesdeUtc, DateTimeOffset HastaUtc,
+    DateTimeOffset? DesdeReferenciaUtc = null, DateTimeOffset? HastaReferenciaUtc = null);
+public sealed record MensajeAsistenteDto(string Rol, string Texto, ReferenciaElementoDto[]? Referencias = null,
+    ReferenciaTemporalDto[]? Periodos = null);
 public sealed record PreguntaAsistenteDto(string Pregunta, string MarcaSesion,
     MensajeAsistenteDto[] Historial, ReferenciaElementoDto? ContextoPagina, bool HistorialRecortado = false);
 public sealed record RespuestaAsistenteDto(CodigoAsistente Codigo, string Mensaje,
-    ReferenciaElementoDto[]? Referencias = null, int? ReintentarEnSegundos = null, string? Correlacion = null);
+    ReferenciaElementoDto[]? Referencias = null, int? ReintentarEnSegundos = null, string? Correlacion = null,
+    ReferenciaTemporalDto[]? Periodos = null);
 public sealed record HerramientaModeloDto(string Nombre, string Descripcion, string EsquemaJson);
 public sealed record LlamadaModeloDto(string Id, string Nombre, string ArgumentosJson);
 public sealed record ResultadoHerramientaDto(string Id, string Nombre, string ContenidoJson);
