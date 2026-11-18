@@ -4,7 +4,7 @@ using SolarUY.Application.Monitoreo;
 
 namespace SolarUY.Presentation.Monitoreo;
 
-[Authorize(Roles = "Administrador")]
+[Authorize(Policy = PoliticasMonitoreo.SensorSimulado)]
 public sealed class MonitoreoHub(MonitoreoService monitoreoService, NotificacionMedicion notificacion,
     IHubContext<MonitoreoHub> hub) : Hub
 {

@@ -12,6 +12,6 @@ public static class MonitoreoEndpoints
             contexto.Response.Headers.CacheControl = "no-store";
             var permiso = await servicio.ConsultarTransmisionAsync(panelId, contexto.RequestAborted);
             return permiso is null ? Results.NotFound() : Results.Ok(permiso);
-        }).RequireAuthorization(politica => politica.RequireRole("Administrador"));
+        }).RequireAuthorization(PoliticasMonitoreo.SensorSimulado);
     }
 }

@@ -63,21 +63,54 @@ La [guía de acceso externo](arnes/prompting/requerimientos/req002_implementacio
 
 ## Monitoreo en tiempo real
 
-El detalle del nodo muestra la última medición guardada de cada panel, con su potencia en W, estado y fecha UTC. El monitoreo individual muestra esa lectura en un medidor radial y recibe las siguientes lecturas en vivo.
+El detalle del nodo muestra la última medición guardada de cada panel, con la potencia en W, el estado y la fecha en hora de Uruguay. El monitoreo individual presenta la potencia en un medidor radial que se actualiza al recibir nuevas lecturas.
 
-En una sesión de Administrador, el sensor se ejecuta en el navegador con Blazor WebAssembly y consulta `InversorSimulado` cada 20 segundos. El inversor simulado genera un estado y, cuando está operativo, una potencia aleatoria por debajo de la potencia nominal del panel. En falla, mantenimiento o desactivación genera 0 W.
+Cuando un Administrador o un Operador abre el monitoreo de un panel, el sensor simulado se inicia en el navegador con Blazor WebAssembly. Mientras la pantalla está abierta y el panel admite telemetría, el sensor envía una lectura de potencia por SignalR cada 20 segundos. El servidor guarda la medición con fecha UTC y publica la actualización.
 
-El sensor envía la lectura por SignalR. El servidor la asocia al panel, le asigna la fecha UTC y la guarda. La vista interactiva de Blazor Server recibe la actualización después de que se confirma el guardado. Administrador y Operador pueden consultar el monitoreo. [Diagrama de WebAssembly](.agents/images/Diagrama_WebAssembly.png).
+Simular falla, simular arreglo, activar y desactivar son acciones exclusivas del Administrador. [Diagrama de WebAssembly](.agents/Images/Diagrama_WebAssembly.png).
 
 ## Documentación del proyecto
 
 Accesos directos a las guías, los documentos de cada requerimiento y modificación, y las instrucciones de desarrollo. Al agregar documentación nueva, actualizar este índice.
+
+### Requerimientos
+
+| ID | Tema |
+| --- | --- |
+| [req001](arnes/prompting/requerimientos/req001_alta_parque_solar) | Alta de parque solar |
+| [req002](arnes/prompting/requerimientos/req002_implementacion_openID) | Autenticación y autorización con OpenID Connect |
+| [req003](arnes/prompting/requerimientos/req003_listar_parque_solar) | Listado de parques solares |
+| [req004](arnes/prompting/requerimientos/req004_alta_nodo) | Alta de nodo |
+| [req005](arnes/prompting/requerimientos/req005_detalle_nodo) | Detalle de nodo |
+| [req006](arnes/prompting/requerimientos/req006_alta_panel_solar) | Alta de panel solar |
+| [req007](arnes/prompting/requerimientos/req007_monitoreo) | Monitoreo de paneles en tiempo real |
+| [req008](arnes/prompting/requerimientos/req008_balanceador_de_carga) | Balanceo de carga |
+| [req009](arnes/prompting/requerimientos/req009_MCP) | Consultas en lenguaje natural mediante MCP |
+| [req010](arnes/prompting/requerimientos/req010_generacion_energia) | Energía generada por parque, nodo y panel |
+| [req011](arnes/prompting/requerimientos/req011_acciones_paneles) | Activación y desactivación de paneles |
+| [req012](arnes/prompting/requerimientos/req012_mantenimiento_panel_solar) | Mantenimiento de paneles solares |
+
+### Modificaciones
+
+| ID | Tema |
+| --- | --- |
+| [mod001](arnes/prompting/modificaciones/mod001_cambio_base_datos) | Migración de SQLite a MySQL |
+| [mod002](arnes/prompting/modificaciones/mod002_cambios_variados) | Cambios variados |
+| [mod003](arnes/prompting/modificaciones/mod003_Dejar_de_mostrar_IDs) | Ocultar identificadores en la interfaz |
+| [mod004](arnes/prompting/requerimientos/req005_detalle_nodo/mod004_seguridad_detalle_nodo) | Acceso del Operador al detalle del nodo |
+| [mod005](arnes/prompting/requerimientos/req007_monitoreo/mod005_cambios_monitoreo) | Últimas mediciones, medidor radial e intervalo de 20 segundos |
+| [mod006](arnes/prompting/requerimientos/req009_MCP/mod006/cambio-modelo-20261105.md) | Cambio de modelo del asistente a Gemini 3.5 Flash-Lite |
+| [mod007](arnes/prompting/modificaciones/mod007_visual_solaruy) | Actualización visual de SolarUY y fechas en hora de Uruguay |
+| [mod008](arnes/prompting/modificaciones/mod008_simulador_operador) | Sensor simulado para el Operador |
+
+La aceptación de mod008 con cuentas reales y una base de datos aislada está pendiente. [Plan de tareas de mod008](arnes/prompting/modificaciones/mod008_simulador_operador/task.md).
 
 ### Guías de configuración y herramientas
 
 - [Acceso externo con Auth0: configuración, roles, inicio y cierre de sesión](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md).
 - [MySQL: configuración de conexión y arranque](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md).
 - [MySQL: referencia técnica, permisos y aceptación](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).
+- [Chatbot de SolarUY: configuración y uso](arnes/prompting/tests/req009/configuration/configuracion.md).
 - [OpenID Connect: resultados de aceptación y verificaciones pendientes](arnes/prompting/requerimientos/req002_implementacion_openID/aceptacion.md).
 - [Arnés y herramientas de control de calidad](arnes/README.md).
 - [SonarQube: preparación del entorno, token en archivo local y análisis](arnes/SonarQube/README.md).
@@ -90,9 +123,12 @@ Accesos directos a las guías, los documentos de cada requerimiento y modificaci
 - [req004 — alta de nodo](arnes/prompting/tests/req004/README.md).
 - [req005 — detalle de nodo](arnes/prompting/tests/req005/README.md).
 - [req006 — alta de panel solar](arnes/prompting/tests/req006/README.md).
+- [req008 — configuración de pruebas de balanceo de carga](arnes/prompting/tests/req008/configuracion.md).
+- [req009 — configuración de pruebas del asistente MCP](arnes/prompting/tests/req009/configuracion.md).
 - [mod002 — cambios variados](arnes/prompting/tests/mod002/README.md).
 - [mod003 — presentación sin identificadores](arnes/prompting/tests/mod003/README.md).
 - [mod004 — seguridad del detalle de nodo](arnes/prompting/tests/mod004/README.md).
+- [mod005 — verificación de mediciones](arnes/prompting/tests/mod005/README.md).
 
 Las comprobaciones de req001, req002 y mod001 se describen en sus guías de configuración, aceptación o referencia técnica enlazadas arriba.
 

@@ -6,6 +6,7 @@
 @using SolarUY.Client.Monitoreo
 @attribute [Authorize(Roles = NotificacionMedicion.RolesConsulta)]
 @inject MonitoreoService Servicio
+@inject IAuthorizationService Autorizacion
 
 <PageTitle>Monitoreo del panel - SolarUY</PageTitle>
 <h1>Monitoreo del panel</h1>
@@ -14,18 +15,16 @@
                @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
 <IndicadorEnergia ComponenteId="PanelId" Tipo="TipoComponenteEnergia.Panel" />
 
-<AuthorizeView Roles="Administrador">
-    @if (_panel is { } panel)
-    {
-        <section class="card mb-4" aria-labelledby="sensor-simulado-titulo">
-            <div class="card-body">
-                <h2 id="sensor-simulado-titulo" class="h5">Sensor simulado</h2>
-                <SensorMonitoreo PanelId="panel.PanelId" PotenciaNominalW="panel.PotenciaNominalW"
-                                 @key="panel.PanelId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
-            </div>
-        </section>
-    }
-</AuthorizeView>
+@if (_panel is { } panel)
+{
+    <section class="card mb-4" aria-labelledby="sensor-simulado-titulo">
+        <div class="card-body">
+            <h2 id="sensor-simulado-titulo" class="h5">Sensor simulado</h2>
+            <SensorMonitoreo PanelId="panel.PanelId" PotenciaNominalW="panel.PotenciaNominalW"
+                             @key="panel.PanelId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+        </div>
+    </section>
+}
 
 @code {
     [Parameter] public Guid PanelId { get; set; }
@@ -37,7 +36,7 @@
         _panel = null;
         var id = PanelId;
         var estado = await EstadoAutenticacion;
-        if (estado.User.IsInRole("Administrador"))
+        if ((await Autorizacion.AuthorizeAsync(estado.User, PoliticasMonitoreo.SensorSimulado)).Succeeded)
         {
             var panel = await Servicio.ConsultarAsync(id);
             if (id == PanelId)

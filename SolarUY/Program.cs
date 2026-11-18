@@ -87,7 +87,9 @@ builder.Services.AddScoped<EnergiaService>();
 builder.Services.AddScoped<MonitoreoService>();
 builder.Services.AddSingleton(TimeProvider.System);
 SeguridadConfiguration.AgregarAutenticacionExterna(builder.Services, builder.Configuration);
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(opciones =>
+    opciones.AddPolicy(PoliticasMonitoreo.SensorSimulado, politica =>
+        politica.RequireAuthenticatedUser().RequireRole("Administrador", "Operador")));
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddRateLimiter(options =>
 {
