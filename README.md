@@ -67,6 +67,12 @@ Para levantar Nginx y las dos instancias de SolarUY con Docker Compose, seguir l
 
 El acceso predeterminado es [https://localhost:8080](https://localhost:8080). Ambas instancias utilizan la configuración local y la misma base de datos; comparten las claves de protección de sesión mediante un volumen. La guía también explica la afinidad, la recuperación ante caídas y cómo preparar un entorno aislado de aceptación.
 
+## Chatbot de consultas
+
+SolarUY incluye un chatbot con Gemini y herramientas MCP para consultar parques, nodos y paneles. Está disponible para **Administrador y Operador** en el panel **Consultas SolarUY**, ubicado en la esquina inferior derecha.
+
+Para habilitarlo, colocar una clave de Gemini en **`Asistente.ClaveApi`** dentro de **`.solaruy-private/asistente.private.json`**, en la raíz del repositorio, junto con `Habilitado: true` y el modelo configurado. La [guía de configuración y uso del chatbot](arnes/prompting/tests/req009/configuracion.md#configuración-paso-a-paso-para-probar-el-chatbot) incluye el JSON de ejemplo, cómo cargarlo al ejecutar con `dotnet` o Docker, el reinicio necesario y preguntas para probarlo. La clave se configura en el servidor y el archivo privado queda excluido de Git.
+
 ## Monitoreo en tiempo real
 
 El detalle del nodo muestra la última medición guardada de cada panel, con la potencia en W, el estado y la fecha en hora de Uruguay. El monitoreo individual presenta la potencia en un medidor radial que se actualiza al recibir nuevas lecturas.
@@ -117,7 +123,7 @@ La aceptación de mod008 con cuentas reales y una base de datos aislada está pe
 - [Acceso externo con Auth0: configuración, roles, inicio y cierre de sesión](arnes/prompting/requerimientos/req002_implementacion_openID/configuracion.md).
 - [MySQL: configuración de conexión y arranque](arnes/prompting/modificaciones/mod001_cambio_base_datos/configuracion.md).
 - [MySQL: referencia técnica, permisos y aceptación](arnes/prompting/modificaciones/mod001_cambio_base_datos/referencia_tecnica.md).
-- [Chatbot de SolarUY: configuración y uso](arnes/prompting/tests/req009/configuration/configuracion.md).
+- [Chatbot de SolarUY: ClaveApi, ejecución con dotnet o Docker y uso](arnes/prompting/tests/req009/configuracion.md).
 - [OpenID Connect: resultados de aceptación y verificaciones pendientes](arnes/prompting/requerimientos/req002_implementacion_openID/aceptacion.md).
 - [Arnés y herramientas de control de calidad](arnes/README.md).
 - [SonarQube: preparación del entorno, token en archivo local y análisis](arnes/SonarQube/README.md).
@@ -131,7 +137,7 @@ La aceptación de mod008 con cuentas reales y una base de datos aislada está pe
 - [req005 — detalle de nodo](arnes/prompting/tests/req005/README.md).
 - [req006 — alta de panel solar](arnes/prompting/tests/req006/README.md).
 - [req008 — configuración de pruebas de balanceo de carga](arnes/prompting/tests/req008/configuracion.md).
-- [req009 — configuración de pruebas del asistente MCP](arnes/prompting/tests/req009/configuracion.md).
+- [req009 - pruebas funcionales y aceptación del asistente MCP](arnes/prompting/tests/req009/pruebas-funcionales.md).
 - [mod002 — cambios variados](arnes/prompting/tests/mod002/README.md).
 - [mod003 — presentación sin identificadores](arnes/prompting/tests/mod003/README.md).
 - [mod004 — seguridad del detalle de nodo](arnes/prompting/tests/mod004/README.md).

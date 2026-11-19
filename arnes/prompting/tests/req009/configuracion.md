@@ -1,92 +1,128 @@
-# req009 — Verificación aislada
+# Chatbot de SolarUY - Configuración y uso
 
-La [configuración, fórmulas y uso del asistente](../../requerimientos/req009_MCP/configuracion.md) se mantienen junto al requerimiento. Este arnés no lee `appsettings.Local.json`, no usa la base habitual y no altera las instancias req008.
+El asistente se habilita explícitamente en el servidor. Sin configuración suficiente, SolarUY arranca normalmente y el chat informa que está deshabilitado. No se agregan tablas ni migraciones y no se modifica `SolarUY/appsettings.Local.json`.
 
-## Destino y reproducción
+## Configuración paso a paso para probar el chatbot
 
-El destino está fijado y validado por el programa: MySQL desechable `solaruy-req009-mysql`, loopback `127.0.0.1:43319`, base `solaruy_req009`. No cambiar estos valores para apuntar a una base habitual. El contenedor utiliza acceso local de prueba sin contraseña; no se publica fuera de loopback y no contiene datos reales.
+Ejecutar los comandos desde la raíz del repositorio, donde está `SolarUY.slnx`, usando **PowerShell 7**. Primero completar la [configuración inicial de SolarUY](../../../../README.md#inicio-rápido), incluyendo MySQL y el acceso OIDC con una cuenta que tenga el rol **Administrador** u **Operador**. La clave de Gemini habilita el modelo; el acceso a SolarUY se configura por separado.
 
-Desde la raíz:
+### 1. Colocar la ClaveApi en el archivo privado
 
-```powershell
-docker run --detach --name solaruy-req009-mysql --label solaruy.prueba=req009 --publish 127.0.0.1:43319:3306 --env MYSQL_ALLOW_EMPTY_PASSWORD=yes --env MYSQL_DATABASE=solaruy_req009 mysql:8.4
-dotnet run --project arnes/prompting/tests/req009/VerificarAsistente.csproj -m:1
-```
-
-Esperar a que MySQL esté disponible. El programa exige una base vacía. Para repetir la preparación exclusivamente en ese destino, agregar `-- --reiniciar`; esta opción elimina y recrea solo la base fija anterior.
-
-Los datos incluyen 120 paneles, homónimos en cuatro nodos/dos parques, ceros medidos, panel sin medición, lectura antigua, huecos y distinta cantidad de muestras. Se comprueban tres páginas de elementos, continuidad del historial, resumen global de más de 100 paneles, diferencias conocidas y composición de 40 días en tramos sin promediar promedios de lotes.
-
-Para el componente real, mantener el proceso siguiente abierto:
+Crear el directorio si todavía no existe:
 
 ```powershell
-dotnet run --project arnes/prompting/tests/req009/VerificarAsistente.csproj -m:1 -- --web
+New-Item -ItemType Directory -Path .solaruy-private -Force | Out-Null
 ```
 
-En otra terminal, instalar la dependencia fijada y ejecutar el navegador:
+Crear o editar **`.solaruy-private/asistente.private.json`** con el siguiente contenido y reemplazar el texto de ejemplo de `ClaveApi` por la clave de Gemini que se utilizará para la prueba:
+
+```json
+{
+  "Asistente": {
+    "Habilitado": true,
+    "Modelo": "gemini-3.5-flash-lite",
+    "ClaveApi": "PEGAR_AQUI_LA_CLAVE_API_DE_GEMINI"
+  }
+}
+```
+
+`Habilitado` debe ser el booleano `true`. `Modelo` muestra el nombre configurado actualmente en SolarUY; la cuenta del proveedor debe tener acceso a ese modelo y cuota disponible. El valor de ejemplo de `ClaveApi` debe reemplazarse: no es una clave válida. Si el archivo ya existe, conservar sus demás opciones al editarlo.
+
+Este archivo está excluido de Git y del contexto de construcción de Docker. La clave se utiliza únicamente en el servidor; no colocar el archivo en `SolarUY.Client` ni en `wwwroot`.
+
+### 2. Iniciar según la forma de ejecución
+
+**Con `dotnet`:** indicar la ruta absoluta del archivo privado en la misma terminal desde la que se inicia SolarUY:
 
 ```powershell
-npm ci --prefix arnes/prompting/tests/req009 --ignore-scripts
-node arnes/prompting/tests/req009/verificar-chat.cjs
+$env:AsistenteArchivoPrivado = (Resolve-Path .solaruy-private/asistente.private.json).Path
+dotnet run --project SolarUY/SolarUY.csproj --launch-profile https
 ```
 
-Se requiere Chromium de Playwright; si falta, ejecutar `npx --prefix arnes/prompting/tests/req009 playwright install chromium`. El servidor de prueba escucha únicamente en HTTPS localhost:43320 con certificado temporal. Sus rutas `/entrar/{rol}` emiten identidades sintéticas y solo existen en este arnés; nunca se registran en SolarUY. El modelo es guionado. MCP, consultas MySQL, componente, endpoints, antiforgery y almacenamiento de pestaña son reales.
+Abrir [https://localhost:7178](https://localhost:7178). La variable afecta a esa terminal y a los procesos que se inician desde ella. Si se cambia el archivo, detener SolarUY con `Ctrl+C` y volver a iniciarlo.
 
-Las capturas se guardan en `artifacts/req009/`. Al terminar, detener el proceso del arnés y el contenedor aislado. No detener los servicios habituales. Para eliminar definitivamente el contenedor de prueba, verificar primero su nombre y etiqueta `solaruy.prueba=req009`.
+**Con Docker Compose y el balanceador:** preparar primero los certificados y los callbacks OIDC según la [guía del balanceador](../req008/configuracion.md). El Compose de la raíz ya monta `.solaruy-private/` y configura ambas instancias para leer `/run/private/asistente.private.json`; no es necesario agregar la clave al YAML ni al Dockerfile.
 
-## Resultados y límites
+```powershell
+docker compose up --build -d
+```
 
-| Área | Verificación realizada |
+Abrir [https://localhost:8080](https://localhost:8080), o el puerto definido en `SOLARUY_PUERTO`. Si el entorno ya estaba iniciado y solo se editó el archivo del chatbot, reiniciar ambas aplicaciones para que lean la configuración nueva:
+
+```powershell
+docker compose restart app1 app2
+```
+
+El archivo se lee al arrancar. Tanto para `dotnet` como para Docker, las variables `Asistente__Habilitado`, `Asistente__Modelo` y `Asistente__ClaveApi`, si están definidas, prevalecen sobre sus valores en el archivo.
+
+### 3. Probar desde SolarUY
+
+1. Iniciar sesión como Administrador u Operador.
+2. Desplegar **Consultas SolarUY**, en la esquina inferior derecha.
+3. Preguntar, por ejemplo: «¿Cómo está funcionando todo hoy?».
+4. Para consultar potencia reciente, abrir el monitoreo de un panel operativo y mantenerlo abierto para que el sensor simulado registre lecturas cada 20 segundos. Desde esa pantalla preguntar: «¿Cuál es el promedio de potencia de este panel en los últimos dos minutos?».
+
+La respuesta debe identificar el elemento, mostrar potencia en W y fechas en horario de Uruguay, e indicar las limitaciones relevantes de las mediciones simuladas. Si no hay registros para el período, corresponde informar ausencia de datos. El chatbot permite consultas de solo lectura.
+
+### Problemas frecuentes al configurar
+
+| Síntoma | Qué revisar |
 | --- | --- |
-| Domain | 91 pruebas, incluyendo 15 casos nuevos de resúmenes/estado/comparación y cambio observado con cobertura parcial |
-| Arquitectura | 17 pruebas existentes, sin modificaciones |
-| MCP | Negociación, descubrimiento de seis herramientas e invocación por pipes reales del SDK 2.3.1 |
-| Persistencia | MySQL 8.4 aislado; páginas sin omisiones, estados ausentes/antiguos, agregación completa, cursor, comparación y tramos |
-| Conversación | Varias llamadas correlacionadas, referencias revalidadas, rechazo de sistema/marca falsa, límite de rondas y cancelación |
-| Gemini | Respuestas HTTP sintéticas: 429/Retry-After, indisponibilidad y conservación de firmas/IDs con y sin ID de proveedor |
-| Navegador | Componente real, envío, recarga/navegación, cambio de sesión, nueva conversación, texto escapado, rol, antiforgery, móvil y foco |
+| No aparece el panel del chat | Que se haya iniciado sesión y la cuenta tenga el rol Administrador u Operador. |
+| El asistente informa que no está configurado | La ruta de `AsistenteArchivoPrivado`, la sección `Asistente`, `Habilitado: true`, la clave y el modelo; reiniciar después de editar. |
+| Sigue usando otra configuración | Las variables de entorno prevalecen sobre el JSON; en Docker deben reiniciarse app1 y app2. |
+| Falla el proveedor o se agota la cuota | Que la clave sea válida, que el modelo esté disponible para esa cuenta y que haya cuota; usar el reintento manual cuando corresponda. |
+| No hay mediciones recientes | Que existan lecturas en el período consultado y que el monitoreo del panel esté activo para generar nuevas muestras. |
 
-El modelo actual es `gemini-3.5-flash-lite`, autorizado por el usuario el 2026-11-05 tras los HTTP 503 de 3.8 Flash. La comparación real desde app1 devuelve HTTP 200 y texto tanto sin herramientas como con una mínima y con las seis declaraciones MCP. La cuenta corresponde al mismo proyecto confirmado «Nivel gratuito» por el usuario; no se activó facturación. Las pruebas históricas de 3.8 Flash se conservan. Administrador y Operador iniciaron sesión OIDC real; se verificaron acceso, navegación, envío, reintento sin duplicación y nueva conversación durante un turno pendiente. Ver [cambio documentado](../../requerimientos/req009_MCP/cambio-modelo-20261105.md) y [estado actualizado](resultados.md).
+## Fuentes privadas
 
-## Despliegue real aislado con el asistente deshabilitado
+Usar variables de entorno `Asistente__Habilitado=true`, `Asistente__Modelo=gemini-3.5-flash-lite` y `Asistente__ClaveApi`, asignando la clave exclusivamente desde una fuente privada. No escribir su valor en comandos guardados, documentación, capturas o archivos públicos.
 
-Se agregó un proyecto de aceptación independiente: HTTPS 9449, diagnóstico 14319/14320, base `solaruy_req009` y MySQL 43319. Usa una imagen y un anillo de Data Protection propios. No modifica las instancias habituales. La configuración de OIDC se toma de la aceptación privada de req008, sin copiarla a Git o evidencias. El archivo de Gemini se monta en solo lectura; una variable del entorno aislado deshabilita el asistente para las comprobaciones sin proveedor.
+También se admite un archivo JSON adicional indicado por `AsistenteArchivoPrivado`. Solo se consume su sección `Asistente`; sus propiedades corresponden a las opciones de la tabla siguiente. Las variables de entorno prevalecen. Los archivos `*.private.json` se excluyen de la publicación del servidor y los nombres privados documentados se excluyen de Git y Docker. `appsettings.Local.json` también se excluye de la publicación.
 
-Este despliegue y el arnés desechable inicial comparten el puerto 43319: ejecutarlos por separado. No ejecutar `--reiniciar` del arnés inicial contra este despliegue.
+En el despliegue req008, ambas instancias leen `/run/private/asistente.private.json`, montado desde el directorio privado existente. Crear ese archivo fuera de Git con la sección `Asistente` y reiniciar ambas instancias después de configurarlo. No copiar la clave al Dockerfile, a imágenes, a `SolarUY.Client` ni al navegador. Conservar el origen HTTPS, las cookies y las claves compartidas existentes de Data Protection.
 
-```powershell
-./arnes/prompting/tests/req009/preparar-aceptacion.ps1
-$aceptacion = @('--env-file', '.solaruy-acceptance/req009/compose.env', '-f', 'arnes/prompting/tests/req009/docker-compose.aceptacion.yml')
-docker compose @aceptacion build app1
-docker compose @aceptacion up -d mysql-pruebas
-# Esperar a MySQL healthy; preparar exige el esquema aislado vacío.
-dotnet run --project arnes/prompting/tests/req009/VerificarAsistente.csproj -m:1 -- --preparar-despliegue
-docker compose @aceptacion up -d app1 app2 nginx
-dotnet run --project arnes/prompting/tests/req009/VerificarAsistente.csproj -m:1 -- --verificar-despliegue
-```
+| Opción en Asistente | Valor inicial |
+| --- | --- |
+| Habilitado | false |
+| Modelo | gemini-3.5-flash-lite |
+| ClaveApi | Ausente; obligatoria para habilitar |
+| ResultadosPagina / MaximoPagina | 50 / 200 |
+| MaximoIds / MaximoDias | 100 / 31 por invocación |
+| VigenciaSegundos / HuecoSegundos | 60 / 60 |
+| MaximoPregunta / MaximoMensajes / MaximoContexto | 2000 / 30 / 32000 caracteres de contexto |
+| MaximoRondas / MaximoInvocaciones / TiempoTurnoSegundos | 8 / 12 / 60 |
 
-La comprobación firma tickets sintéticos fuera del servidor usando exclusivamente el anillo de aceptación. No agrega endpoints de autenticación ni omite autorización en SolarUY. Verifica ambas instancias por el balanceador, roles/sesión vencida, configuración deshabilitada, consulta habitual de parques y registro real de una medición simulada mediante SignalR en la base de prueba. Posteriormente se completó FUN35 mediante el navegador con sesión OIDC real de Administrador: aviso visible y sensor funcionando. También se completó FUN07 al conservar la sesión y el chat tras detener app1 y recargar sobre app2; después el usuario inició sesión OIDC real como Operador. Ver [resultados y evidencias](resultados.md). Los escenarios conversacionales y la caída durante un turno se registran por separado.
+Los límites superiores anteriores protegen la ejecución. Se pueden reducir; también se pueden ajustar los umbrales de cobertura/vigencia. Una configuración inválida deshabilita el asistente. Estos valores no son cuotas del proveedor.
 
-Para continuar con OIDC real, usar una ventana privada separada del entorno habitual y autorizar en el proveedor los callbacks `https://localhost:9449/signin-oidc`, `https://localhost:9449/signout-callback-oidc` y el retorno `https://localhost:9449/`, conservando los existentes. Después de FUN35 se definió `SOLARUY_REQ009_HABILITADO=true` en el entorno exclusivo de aceptación y se recrearon solo sus aplicaciones. El chat de pruebas queda habilitado con `gemini-3.5-flash-lite` en el archivo privado adicional compartido; reiniciar ambas aplicaciones después de modificar ese archivo porque se lee al arranque. No habilitar facturación ni sustituir nuevamente el modelo sin autorización. El apagado independiente es `docker compose @aceptacion stop`; conservar los datos/anillo para continuar la aceptación.
+## Cuenta y tratamiento de datos
 
-El diagnóstico `--exportar-catalogo` del arnés solo descubre las seis herramientas por MCP y guarda sus definiciones públicas del contrato en `artifacts/req009/catalogo-mcp.json`; no consulta registros. `verificar-gemini-contenedor.ps1` prueba una generación mínima desde app1; con `-ConHerramientas` incluye esas definiciones. Las evidencias guardan estado HTTP/códigos y booleanos de generación, sin cuerpos de respuestas ni claves. Cada ejecución es manual, sin bucles de reintento.
+Antes de completar la aceptación, verificar en la cuenta real que el proyecto permite `gemini-3.5-flash-lite` por API en el nivel gratuito y efectuar una consulta desde el chat. No activar facturación ni sustituir nuevamente el modelo si no está habilitado. La documentación del modelo acredita capacidades, no la disponibilidad ni la cuota de una cuenta concreta. El usuario confirmó «Nivel gratuito» para el mismo proyecto. El 2026-11-05 autorizó expresamente cambiar desde 3.8 Flash por los HTTP 503 de alta demanda; se actualizaron requirements, specs, tasks, el valor predeterminado, la configuración privada y los diagnósticos. Flash-Lite devolvió HTTP 200 y texto generado en las tres variantes: sin herramientas, con una mínima y con las seis declaraciones MCP. Esta prueba no ejecutó herramientas y no sustituye la aceptación conversacional. El chat aislado está habilitado y se verificó el acceso OIDC real de Administrador y Operador. Ver [cambio de modelo y validación](../../requerimientos/req009_MCP/mod006/cambio-modelo-20261105.md) y [resultados actualizados](resultados.md).
 
-Para una comparación controlada, con app1 de aceptación disponible y el catálogo ya exportado:
+Los [términos de Gemini API](https://ai.google.dev/gemini-api/terms) indican que el contenido del nivel gratuito puede utilizarse para mejorar productos y modelos y revisarse por personas. No enviar información sensible, confidencial ni personal. Revisar los requisitos de edad, región y uso aplicables a la cuenta antes de habilitarlo. El asistente envía texto, contexto operativo autorizado y herramientas del catálogo, sin identidad del usuario, credenciales, endpoints de sensores, archivos del proveedor ni sesiones conversacionales persistentes. Limitar el uso de este taller a los datos simulados apropiados para ese tratamiento.
 
-```powershell
-./arnes/prompting/tests/req009/comparar-gemini.ps1
-```
+Referencias oficiales: [Gemini 3.5 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite), [precios y nivel gratuito](https://ai.google.dev/gemini-api/docs/pricing), [cuotas por proyecto](https://ai.google.dev/gemini-api/docs/rate-limits), [llamadas de funciones](https://ai.google.dev/gemini-api/docs/generate-content/function-calling), [transporte MCP en memoria](https://github.com/modelcontextprotocol/csharp-sdk/blob/main/docs/concepts/transports/transports.md#in-memory-transport). SDK oficial MCP fijado en 2.3.1.
 
-Realiza exactamente un intento por variante: sin herramientas, una declaración mínima y las seis declaraciones MCP reales. Conserva contenedor, modelo, credencial, pregunta y parámetros; solo varían las declaraciones. No ejecuta herramientas, no envía datos de parques/mediciones ni identidad y se detiene si recibe 429. Cada ejecución crea un directorio fechado `artifacts/req009/comparacion-gemini-*` con resultados depurados. La comparación histórica con 3.8 Flash devolvió 503 en los tres casos; la del modelo actual 3.5 Flash-Lite devolvió HTTP 200 y texto en los tres casos. Los diagnósticos individuales guardan archivos `gemini-35-flash-lite*.json` para conservar los históricos. Una muestra por variante no acredita estabilidad ni el ciclo completo de herramientas; ver [resultados.md](resultados.md).
+## Uso
 
-## Estado de aceptación
+Administrador y Operador disponen del panel inferior derecho. La flecha despliega/minimiza. “Nueva conversación” borra mensajes y referencias y cancela el turno pendiente. La conversación y el estado minimizado se conservan por pestaña en `sessionStorage`; solo se restauran después de validar la sesión actual. Al cerrar/vencer/cambiar la sesión se descartan. No se utiliza `localStorage`, una tabla de conversación ni un singleton conversacional.
 
-Las 197 casillas de `tasks.md` están completas. Se verificaron los escenarios desde el origen HTTPS de aceptación con OIDC real de Administrador, Operador y cuenta sin roles, modelo Flash-Lite real y proyecto gratuito confirmado. Se comprobó la caída de una instancia y la conservación de sesión/conversación mediante recarga y reintento. Las inyecciones de cuota, conectividad y transporte se identifican expresamente; no se provocaron fallos ni se prepararon datos en la base habitual.
+Desde el detalle de un parque/nodo o el monitoreo de un panel, la pregunta incluye únicamente su tipo e ID. Al salir de esas rutas se descarta ese contexto. El servidor vuelve a validar las referencias; los homónimos y referentes ambiguos requieren aclaración. Un recorte de contexto se informa sin borrar el historial visible.
 
-La ejecución posterior de los pendientes se registra en [aceptacion-20261105.md](aceptacion-20261105.md), con checkboxes actualizados al aprobar cada caso y evidencias depuradas en `artifacts/req009/aceptacion-real.json`. Incluye consultas reales sobre 125 paneles, continuidad entre instancias, caída durante un turno y fallos inyectados claramente separados. El estado final se consulta allí y en `tasks.md`, sin interpretar los apartados históricos como tareas todavía pendientes.
+Los mensajes anteriores conservan su texto y fechas. Una pregunta sobre “ahora” vuelve a consultar MCP. Los errores conservan la conversación y ofrecen reintento manual del mismo mensaje sin duplicarlo; se respeta `Retry-After`, incluso tras recargar. Si cae una instancia durante el turno se informa la interrupción: se puede recargar/reintentar en la disponible, sin garantizar recuperación de una respuesta en curso.
 
-Las herramientas adicionales se ejecutan con el proyecto compilado: `--preparar-escenarios`, `--actualizar-escenarios`, `--verificar-guardas`, `--verificar-guardas-mcp`, `--verificar-regresion`, `--verificar-operaciones-fallo` y `--web-aceptacion`. No ejecutar preparación más de una vez ni usar `--reiniciar` en el despliegue persistente aislado. La página `/_aceptacion/req009/permisos` solo existe en nginx de aceptación y muestra estados HTTP usando la sesión del navegador sin revelar cookies o tokens.
+## Interpretación de resultados
 
-Los overrides `docker-compose.fallo-proveedor.yml` y `docker-compose.retardo-proveedor.yml` son exclusivamente de aceptación. El primero desvía temporalmente Google a loopback en app1; el segundo retrasa CONNECT 45 segundos mediante un proxy interno sin puertos públicos, descifrado TLS ni registro de datos. Restaurar siempre app1 con solo el compose base y retirar el contenedor auxiliar al terminar. Las comprobaciones finales verifican ambas instancias saludables, sin esos overrides activos.
+- Potencia en W; no se calcula energía en kWh sumando muestras. Promedio por panel = suma de potencias / cantidad de muestras. Promedio observado de nodo/parque = suma de promedios de sus paneles.
+- Diferencia = promedio observado actual − referencia. Porcentaje = diferencia / referencia × 100; referencia cero produce porcentaje ausente. Cobertura insuficiente produce comparación no concluyente.
+- Fechas en America/Montevideo, intervalos UTC `[desde, hasta)`. Fechas ISO sin offset también se interpretan en Montevideo. “Hoy contra ayer” usa igual tramo transcurrido salvo solicitud explícita de días completos. “Durante la mañana” usa 06:00–12:00, limitado por el instante de la pregunta.
+- Estado actual = últimas muestras hasta el instante único del turno, con desempate por ID. La potencia actual suma únicamente lecturas vigentes; se separan antiguos y ausentes. Los estados observados conservan sus fechas; no existe un estado global inventado.
+- Cobertura = cantidad, primera/última fecha y mayor hueco incluyendo bordes. Paneles faltantes o huecos superiores al umbral implican resultado parcial. Es cobertura observada, no garantía de monitoreo continuo. El simulador envía cada 20 segundos mientras su pantalla está activa.
+- Los agregados procesan todas las muestras antes de paginar la salida. Un resumen Global no tiene límite de 100 paneles. Para más de 31 días, `ResumirMediciones` compone en SolarUY los siguientes tramos contiguos con `ComponerConAnterior=true`, dentro del mismo turno y ámbito. El presupuesto de ejecución puede impedir completar todos los tramos y debe informarse lo pendiente.
+- Cada resumen/comparación obtiene una vista consistente de MySQL. Herramientas o tramos distintos pueden observar nuevas escrituras. Las consultas no determinan causas de fallas.
 
-Advertencias preexistentes: NU1903 de `Microsoft.AspNetCore.Components.WebAssembly.Server` 10.0.12 (GHSA-g27p-qf6j-c96c y GHSA-qjpx-jqm5-h2c4). No se modificaron paquetes ajenos a req009 para ocultarlas. El entorno restringido no iniciaba el host WebAssembly; los controles se ejecutaron con procesos .NET habilitados y `-m:1`, sin modificar los tests estructurales.
+## Verificación y métricas
+
+Los logs del adaptador registran código, duración, cantidad de mensajes y correlación; nunca cuerpos, respuestas operativas ni credenciales. Las evidencias depuradas y resultados de controles están en `artifacts/req009/`, excluido de Git.
+
+Ver [pruebas funcionales, reproducción y límites de la aceptación](pruebas-funcionales.md). Las comprobaciones con modelo/identidad sintéticos complementan la aceptación real; no la sustituyen. El seguimiento se registra en el plan del requerimiento.
